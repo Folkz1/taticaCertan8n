@@ -1,0 +1,48 @@
+Documentar Requisitos Funcionais e Não Funcionais Chave (Refinamento).
+
+Vamos começar pelos Requisitos Funcionais (RF), combinando seu documento original com o escopo V1 atualizado e nosso planejamento:
+
+RFs Originais (Refinados):
+
+RF1: Interação 100% WhatsApp (texto, API não oficial).
+RF2: Onboarding coleta banca, meta, prazo, perfil investidor, times favoritos. Stake é % da banca (pelo perfil). Persiste em users.
+RF3: Lista jogos (em andamento/próximos das ligas principais; opção "todos do dia").
+RF4: Consome detalhes da partida (incluindo contexto de desgaste/histórico) da football.api-sports.
+RF5: Integra com Gemini para IA (análise com pergunta aberta inicial, NLU, etc.).
+RF6: Apresenta análises como texto estruturado gerado pela IA.
+RF7: Permite atualizar lista de jogos.
+RF8: Gerencia foco na análise atual (AE Pós-Análise).
+RF9: Sistema de créditos (débito ao chamar API esportes, reset diário).
+Novos RFs (do Escopo V1 Atualizado/Planejamento):
+
+RF10: Permite retornar à análise não finalizada sem novo crédito.
+RF11: Agente de Controle de Perdas envia alerta proativo baseado em feedback de perdas.
+RF12: Notificações proativas sobre jogos de times favoritos.
+RF13: Feedback pós-jogo simplificado com registro em user_bets.
+RF14: Cálculo de stake personalizado pelo perfil de investidor.
+RF15: IA da análise foca apenas no jogo selecionado.
+RF16: IA da análise inicia com overview e pergunta aberta.
+
+Requisitos Não Funcionais (RNF) - V1 "apostacerta.AI":
+
+Usabilidade:
+RNF1.1: Interface conversacional intuitiva, linguagem clara (pt-BR).
+RNF1.2: Respostas rápidas (ex: 2-5s para interações simples).
+RNF1.3: Mensagens de erro amigáveis e orientadoras.
+Performance:
+RNF2.1: N8N suportar X usuários concorrentes (ex: 10-20 V1) sem degradação.
+RNF2.2: Otimizar chamadas a APIs externas (paralelização, cache).
+RNF2.3: Atualização da lista de jogos eficiente.
+Confiabilidade:
+RNF3.1: Tratamento elegante de erros de API externas.
+RNF3.2: Sistema de créditos preciso.
+RNF3.3: Retorno à análise ativa restaurando contexto corretamente.
+RNF3.4: Fluxos agendados robustos e com logging.
+Segurança:
+RNF4.1: Chaves de API gerenciadas de forma segura no N8N.
+RNF4.2: Dados do usuário no Supabase protegidos (RLS, etc.).
+RNF4.3: Interação protegida pela criptografia do WhatsApp.
+Manutenibilidade/Escalabilidade (Básica V1):
+RNF5.1: Workflows N8N organizados, modulares, comentados.
+RNF5.2: Arquitetura de agentes permitindo evolução controlada.
+RNF5.3: Supabase (PostgreSQL) como base escalável.

@@ -1,0 +1,33 @@
+Onboarding:
+
+Boas-vindas: "Olá! Você chegou na apostacerta.AI 🚀..."
+Após Banca: "Ótimo, sua banca é de R$ {banca}. Agora, qual é a sua meta de lucro para hoje? 🎯..."
+Após Meta: "Entendido, sua meta de lucro é de R$ {meta}. E em quantos dias você planeja alcançar essa meta?..."
+Após Prazo (para Perfil): "Para te ajudar melhor, qual seu perfil de investidor? (Conservador, Equilibrado, Agressivo)"
+Após Perfil (para Times): "Para personalizar sua experiência, me diga até 3 times de futebol que você mais acompanha..."
+Apresentação Stake (Ex. Equilibrado): "Seu perfil é Equilibrado. Sugiro uma stake de R$ {stake_sugerida} (5% da sua banca)..." (Inclui alerta para Agressivo).
+Conclusão Onboarding: "Tudo pronto! 👍 Agora, digite “Menu” para acessar..."
+Menu Principal / Listagem Jogos: 8. Retorno à Análise Ativa: "↪️ Retornar à análise de {nome_jogo_ativo}" 9. Intro Menu Jogos: "Escolha seu jogo ou outra opção 👇" 10. Aviso Jogos: "Estes são jogos em tempo real ou muito próximos de começar." 11. Sem Jogos Principais: "Nenhum jogo das ligas principais em andamento no momento. Acesse 'Ver todos os jogos do dia'..." 12. Confirmação Encerrar Análise Ativa: "Você tem uma análise em andamento para {jogo_antigo}. Iniciar uma nova para {jogo_novo} irá encerrá-la. Continuar? (Sim/Não)"
+
+Análise de Jogo: 13. Confirmação Seleção: "Ok! Você selecionou: {Jogo}." 14. Sem Créditos: "Percebi que você não tem créditos... Gostaria de ver planos ou tentar amanhã?" 15. Aviso Consumo Crédito: "Você possui {N} créditos. Continuar para buscar dados e iniciar a análise para {Jogo} (isso consumirá 1 crédito)? (Sim/Não)" 16. Após Confirmação (Pré-API Esportes): "Ok! Buscando dados detalhados para {Jogo}..." 17. Erro API Esportes/Sem Dados: "Puxa, ainda não tenho dados suficientes para {Jogo}... Gostaria de tentar outro?" (+ reembolso). 18. IA Inicia Análise (Overview + Pergunta Aberta): Ex: "Com base neste cenário inicial para {Jogo}, sobre qual aspecto você gostaria de mais detalhes...?" 19. Erro API Gemini: "Ocorreu um probleminha ao consultar nossa IA... Tente novamente." (+ reembolso).
+
+Interação Pós-Análise: 20. Usuário Desvia Assunto: "❗️ Atenção: o apostacerta.AI foca apenas no jogo solicitado. Para outra partida, volte ao Menu." 21. Feedback Pós-Jogo (Pergunta): "Como foram suas decisões para o jogo {Jogo}? Gostaria de registrar algo?" 22. Confirmação Registro Aposta: "Ok, registrei: {descrição} - {Resultado} (Lucro/Prejuízo: R${valor})." 23. Sugestão Voltar Menu (Pós-Interação): "Posso ajudar com mais algo sobre esta análise, ou prefere voltar ao menu?"
+
+Agente de Controle de Perdas: 24. Alerta de Perdas: "Percebi que as últimas análises/apostas não foram como esperávamos. Que tal uma pausa por hoje...?"
+
+Notificações Proativas: 25. Alerta Time Favorito: "Olá {user_name}! Vi que seu time, {Time Favorito}, joga agora/em breve contra {Adversário}. Gostaria de uma análise?"
+
+Outras: 26. API Esportes Offline (Pré-Menu): "Desculpe, nossos sistemas de dados esportivos estão indisponíveis. Tente em alguns minutos." 27. Genérico (Comando não entendido/Ignorar): "Entendido!" ou "Desculpe, não entendi. Tente 'Menu'."
+
+
+# Planejamento dos Fluxos N8N e Arquitetura de Agentes - V1 apostacerta.AI
+
+Este documento detalha a arquitetura de Agentes de Inteligência Artificial (IA) e os principais fluxos de trabalho (workflows) na plataforma N8N para gerenciar as interações e a lógica do chatbot apostacerta.AI.
+
+## 1. Arquitetura de Agentes de IA
+
+O sistema utilizará uma orquestra de Agentes de IA especializados, coordenados por um agente roteador principal e suportados por um agente de sumarização e perfilamento.
+
+*   **ARP (Agente Roteador Principal):** Ponto de entrada, roteia para Agentes Especialistas (AEs) usando contexto/resumo do ASPD.
+*   **ASPD (Agente Sumarizador e de Perfilamento Dinâmico):** Mantém resumo da conversa e perfil do usuário (preferências, etc.) na Memória (Supabase).
+*   **AEs (Agentes Especialistas - Gemini no N8N):** Onboarding, Menu Principal, Listagem de Jogos, Análise de Jogo, Interação Pós-Análise, FAQ/Ajuda, Controle de Perdas (proativo), Notificações (agendado).

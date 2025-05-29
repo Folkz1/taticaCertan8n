@@ -1,0 +1,157 @@
+Modelagem de Dados V1 "apostacerta.AI" em formato Markdown, em partes.
+
+Parte 1: Tabelas users e plans em Markdown.
+
+# Modelagem de Dados V1 - apostacerta.AI
+
+Este documento descreve a estrutura das tabelas do banco de dados PostgreSQL (gerenciado pelo Supabase) para a Versão 1 do projeto apostacerta.AI.
+
+## Tabela: `users`
+
+Responsável por armazenar dados do usuário, incluindo informações de onboarding, perfil, créditos, e estado atual para funcionalidades como retorno à análise.
+
+| Coluna                        | Tipo Primitivo Supabase | Restrições/Notas                                   | Descrição (Português)                                                                 |
+| :---------------------------- | :---------------------- | :------------------------------------------------- | :------------------------------------------------------------------------------------ |
+| `user_id`                     | `BIGSERIAL`             | `PRIMARY KEY`                                      | Identificador único interno do usuário.                                                 |
+| `whatsapp_id`                 | `TEXT`                  | `NOT NULL`, `UNIQUE`                               | O ID do WhatsApp do usuário (ex: `55119XXXXXXXX@s.whatsapp.net`).                   |
+| `push_name`                   | `TEXT`                  | `NULL`                                             | Nome do usuário conforme aparece no WhatsApp.                                         |
+| `bank_value`                  | `DECIMAL(12, 2)`        | `NULL`                                             | Valor da banca inicial informado pelo usuário.                                        |
+| `daily_goal_value`            | `DECIMAL(12, 2)`        | `NULL`                                             | Meta de lucro diária informada pelo usuário.                                          |
+| `goal_timeframe_days`         | `INTEGER`               | `NULL`                                             | Prazo em dias para alcançar a meta de lucro.                                          |
+| `investor_profile`            | `TEXT`                  | `NULL`                                             | Perfil de investidor ("Conservador", "Equilibrado", "Agressivo").                       |
+| `favorite_teams`              | `JSONB`                 | `NULL`                                             | Array de times favoritos (ex: `[{"team_api_id": "123", "team_name": "Nome"}]`).      |
+| `remaining_credits`           | `INTEGER`               | `NOT NULL`, `DEFAULT 0`                            | Quantidade de créditos de análise que o usuário possui.                               |
+| `credits_last_reset_at`       | `TIMESTAMPTZ`           | `NULL`                                             | Data e hora da última vez que os créditos do usuário foram resetados/recarregados.    |
+| `recent_loss_signals_count`   | `INTEGER`               | `NOT NULL`, `DEFAULT 0`                            | Contador de perdas recentes ou análises reportadas como não sucedidas.                |
+| `active_analysis_game_id`     | `TEXT`                  | `NULL`                                             | ID do jogo (da API de esportes) que está atualmente em análise pelo usuário.         |
+| `active_analysis_details`     | `JSONB`                 | `NULL`                                             | Detalhes do jogo em análise (nome, liga, etc.) para reconstruir contexto ao retornar. |
+| `current_subscription_id`     | `BIGINT`                | `NULL`, `FK` para `user_subscriptions.subscription_id` | ID da assinatura ativa atual do usuário.                                                |
+| `onboarding_completed_at`     | `TIMESTAMPTZ`           | `NULL`                                             | Data e hora que o usuário completou o onboarding.                                     |
+| `last_favorite_team_notification_at` | `TIMESTAMPTZ`    | `NULL`                                             | Data da última notificação proativa sobre time favorito.                             |
+| `created_at`                  | `TIMESTAMPTZ`           | `NOT NULL`, `DEFAULT CURRENT_TIMESTAMP`            | Data e hora de criação do registro.                                                   |
+| `updated_at`                  | `TIMESTAMPTZ`           | `NOT NULL`, `DEFAULT CURRENT_TIMESTAMP`            | Data e hora da última atualização do registro.                                        |
+
+---
+
+## Tabela: `plans`
+
+Define os diferentes planos de assinatura disponíveis no sistema.
+
+| Coluna                 | Tipo Primitivo Supabase | Restrições/Notas                               | Descrição (Português)                                                      |
+| :--------------------- | :---------------------- | :--------------------------------------------- | :------------------------------------------------------------------------- |
+| `plan_id`              | `SERIAL`                | `PRIMARY KEY`                                  | Identificador único do plano.                                              |
+| `plan_name`            | `TEXT`                  | `NOT NULL`, `UNIQUE`                           | Nome do plano (ex: "Free", "Lite", "Pro", "Elite").                        |
+| `description`          | `TEXT`                  | `NULL`                                         | Descrição amigável do plano para o usuário.                                |
+| `daily_analysis_limit` | `INTEGER`               | `NOT NULL`, `DEFAULT 1`                        | Número de análises/créditos permitidas por dia para este plano.            |
+| `duration_days`        | `INTEGER`               | `NULL`                                         | Duração do plano em dias (ex: 7 para "Free"). NULL para planos contínuos. |
+| `price`                | `DECIMAL(10, 2)`        | `NOT NULL`, `DEFAULT 0.00`                     | Preço do plano.                                                            |
+| `is_active`            | `BOOLEAN`               | `NOT NULL`, `DEFAULT TRUE`                     | Indica se este plano está atualmente disponível para novas assinaturas.    |
+| `created_at`           | `TIMESTAMPTZ`           | `NOT NULL`, `DEFAULT CURRENT_TIMESTAMP`        | Data e hora de criação do registro.                                        |
+| `updated_at`           | `TIMESTAMPTZ`           | `NOT NULL`, `DEFAULT CURRENT_TIMESTAMP`        | Data e hora da última atualização do registro.                             |
+
+## Tabela: `user_subscriptions`
+
+Rastreia qual plano cada usuário assinou, as datas de início/fim e o status da assinatura.
+
+| Coluna            | Tipo Primitivo Supabase | Restrições/Notas                                   | Descrição (Português)                                                              |
+| :---------------- | :---------------------- | :------------------------------------------------- | :--------------------------------------------------------------------------------- |
+| `subscription_id` | `BIGSERIAL`             | `PRIMARY KEY`                                      | Identificador único da assinatura.                                                 |
+| `user_id`         | `BIGINT`                | `NOT NULL`, `FK` para `users.user_id`              | ID do usuário que possui esta assinatura.                                          |
+| `plan_id`         | `INTEGER`               | `NOT NULL`, `FK` para `plans.plan_id`              | ID do plano assinado.                                                              |
+| `start_date`      | `TIMESTAMPTZ`           | `NOT NULL`, `DEFAULT CURRENT_TIMESTAMP`            | Data de início da assinatura.                                                      |
+| `end_date`        | `TIMESTAMPTZ`           | `NULL`                                             | Data de término da assinatura (NULL para planos contínuos, preenchida para Free). |
+| `is_active`       | `BOOLEAN`               | `NOT NULL`, `DEFAULT TRUE`                     | Indica se esta assinatura específica está atualmente ativa.                        |
+| `auto_renews`     | `BOOLEAN`               | `NOT NULL`, `DEFAULT FALSE`                    | Indica se a assinatura se renova automaticamente (Pode ser mais para V2).         |
+| `payment_transaction_id` | `TEXT`           | `NULL`                                             | ID da transação de pagamento, se aplicável (Pode ser mais para V2).             |
+| `created_at`      | `TIMESTAMPTZ`           | `NOT NULL`, `DEFAULT CURRENT_TIMESTAMP`            | Data e hora de criação do registro.                                                |
+| `updated_at`      | `TIMESTAMPTZ`           | `NOT NULL`, `DEFAULT CURRENT_TIMESTAMP`            | Data e hora da última atualização do registro.                                     |
+
+---
+
+## Tabela: `leagues`
+
+Armazena as ligas de futebol que o sistema cobrirá, com seus respectivos IDs da API de esportes e outros metadados.
+
+| Coluna                   | Tipo Primitivo Supabase | Restrições/Notas                               | Descrição (Português)                                                              |
+| :----------------------- | :---------------------- | :--------------------------------------------- | :--------------------------------------------------------------------------------- |
+| `league_id`              | `SERIAL`                | `PRIMARY KEY`                                  | Identificador único interno da liga.                                               |
+| `api_football_league_id` | `INTEGER`               | `NULL`, `UNIQUE`                               | O ID da liga correspondente na football.api-sports. Essencial para buscar jogos.   |
+| `league_name`            | `TEXT`                  | `NOT NULL`                                     | Nome da liga (ex: "Campeonato Brasileiro Série A", "Champions League").            |
+| `country_name`           | `TEXT`                  | `NULL`                                         | Nome do país da liga (ex: "Brasil", "England", "Europe").                          |
+| `league_type`            | `TEXT`                  | `NULL`                                         | Tipo de liga (ex: "National", "Cup", "State").                                     |
+| `logo_url`               | `TEXT`                  | `NULL`                                         | URL para o logo da liga (pode ser da media.api-sports.io).                         |
+| `is_active`              | `BOOLEAN`               | `NOT NULL`, `DEFAULT TRUE`                     | Indica se o sistema deve buscar ativamente jogos desta liga.                       |
+| `display_order`          | `INTEGER`               | `NOT NULL`, `DEFAULT 0`                        | Para controlar a ordem de exibição das ligas ao usuário.                           |
+| `coverage_info`          | `JSONB`                 | `NULL`                                         | Informações de cobertura da API (events, lineups, statistics), se necessário.       |
+| `created_at`             | `TIMESTAMPTZ`           | `NOT NULL`, `DEFAULT CURRENT_TIMESTAMP`        | Data e hora de criação do registro.                                                |
+| `updated_at`             | `TIMESTAMPTZ`           | `NOT NULL`, `DEFAULT CURRENT_TIMESTAMP`        | Data e hora da última atualização do registro.                                     |
+
+## Tabela: `interaction_log`
+
+Registra interações importantes suas e eventos chave do sistema para debugging, análise de uso e rastreamento de fluxos.
+
+| Coluna       | Tipo Primitivo Supabase | Restrições/Notas                               | Descrição (Português)                                                                                                |
+| :----------- | :---------------------- | :--------------------------------------------- | :------------------------------------------------------------------------------------------------------------------- |
+| `log_id`     | `BIGSERIAL`             | `PRIMARY KEY`                                  | Identificador único do log.                                                                                          |
+| `user_id`    | `BIGINT`                | `NULL`, `FK` para `users.user_id`              | ID seu associado ao evento (NULL se for um evento de sistema não específico seu).                     |
+| `timestamp`  | `TIMESTAMPTZ`           | `NOT NULL`, `DEFAULT CURRENT_TIMESTAMP`        | Data e hora em que o evento ocorreu.                                                                                 |
+| `event_type` | `TEXT`                  | `NOT NULL`                                     | Tipo de evento (ex: "USER_ONBOARDING_STARTED", "ANALYSIS_REQUESTED", "API_ERROR_GEMINI", "CONTROL_AGENT_WARNING_SENT"). |
+| `details`    | `JSONB`                 | `NULL`                                         | Objeto JSON para armazenar dados contextuais sobre o evento (ex: ID do jogo, mensagem de erro, etc.).             |
+| `created_at` | `TIMESTAMPTZ`           | `NOT NULL`, `DEFAULT CURRENT_TIMESTAMP`        | Data e hora de criação do registro do log (geralmente igual a `timestamp`).                                        |
+
+*Nota: Uma lista detalhada de `event_type` será definida no planejamento dos fluxos N8N.*
+
+---
+
+## Tabela: `user_bets`
+
+Armazena o seu feedback sobre os resultados das análises ou apostas que você decidiu acompanhar/fazer, e o resultado reportado. Alimenta o Agente de Controle de Perdas.
+
+| Coluna                 | Tipo Primitivo Supabase | Restrições/Notas                               | Descrição (Português)                                                                 |
+| :--------------------- | :---------------------- | :--------------------------------------------- | :------------------------------------------------------------------------------------ |
+| `bet_id`               | `BIGSERIAL`             | `PRIMARY KEY`                                  | Identificador único do registro da aposta/feedback.                                   |
+| `user_id`              | `BIGINT`                | `NOT NULL`, `FK` para `users.user_id`          | ID seu que registrou este feedback/aposta.                                     |
+| `game_id_api_football` | `TEXT`                  | `NULL`                                         | ID do jogo na API de esportes, se o feedback for sobre um jogo específico analisado.    |
+| `league_id`            | `INTEGER`               | `NULL`, `FK` para `leagues.league_id`          | ID da liga do jogo (opcional, para contexto e relatórios).                            |
+| `bet_description`      | `TEXT`                  | `NOT NULL`                                     | Descrição da aposta feita ou do resultado acompanhado (Ex: "Time A venceu", "Over 2.5"). |
+| `stake_amount`         | `DECIMAL(12, 2)`        | `NULL`                                         | Valor que você apostou (se informado).                                           |
+| `odds`                 | `DECIMAL(5, 2)`         | `NULL`                                         | As odds da aposta (se informado).                                                     |
+| `bet_timestamp`        | `TIMESTAMPTZ`           | `NOT NULL`, `DEFAULT CURRENT_TIMESTAMP`        | Data e hora em que o feedback/aposta foi registrado por você.                     |
+| `result`               | `TEXT`                  | `NULL`                                         | Resultado reportado por você (Ex: "WON", "LOST", "VOID", "PENDING", "NO_BET").     |
+| `profit_loss_amount`   | `DECIMAL(12, 2)`        | `NULL`                                         | Ganhos ou perdas dessa aposta específica (calculado se `stake` e `odds` disponíveis). |
+| `notes`                | `TEXT`                  | `NULL`                                         | Suas notas adicionais sobre este registro.                                      |
+| `created_at`           | `TIMESTAMPTZ`           | `NOT NULL`, `DEFAULT CURRENT_TIMESTAMP`        | Data e hora de criação do registro.                                                   |
+| `updated_at`           | `TIMESTAMPTZ`           | `NOT NULL`, `DEFAULT CURRENT_TIMESTAMP`        | Data e hora da última atualização do registro.                                        |
+
+## Tabela: `knowledge_base`
+
+Armazena fragmentos de conhecimento reutilizáveis, como respostas de FAQ, fragmentos de prompts, mensagens de sistema, etc. Evolução da ideia original de `faq_knowledge_base` para ser mais versátil.
+
+| Coluna           | Tipo Primitivo Supabase | Restrições/Notas                               | Descrição (Português)                                                                 |
+| :--------------- | :---------------------- | :--------------------------------------------- | :------------------------------------------------------------------------------------ |
+| `kb_id`          | `SERIAL`                | `PRIMARY KEY`                                  | Identificador único do registro de conhecimento.                                       |
+| `kb_type`        | `TEXT`                  | `NOT NULL`                                     | Tipo/Categoria do conhecimento (Ex: "FAQ", "PROMPT_FRAGMENT", "SYSTEM_MESSAGE", "TIP"). |
+| `kb_key`         | `TEXT`                  | `NOT NULL`                                     | Chave única dentro do `kb_type` (Ex: "creditos_info", "stake_agressivo_alerta").       |
+| `kb_value`       | `TEXT`                  | `NOT NULL`                                     | O conteúdo/texto em si.                                                               |
+| `kb_context_tags`| `JSONB`                 | `NULL`                                         | Tags JSON para busca ou filtragem adicional (ex: `["onboarding", "creditos"]`).         |
+| `created_at`     | `TIMESTAMPTZ`           | `NOT NULL`, `DEFAULT CURRENT_TIMESTAMP`        | Data e hora de criação do registro.                                                   |
+| `updated_at`     | `TIMESTAMPTZ`           | `NOT NULL`, `DEFAULT CURRENT_TIMESTAMP`        | Data e hora da última atualização do registro.                                        |
+
+*Constraint: UNIQUE(kb_type, kb_key)*
+
+---
+
+## Tabela: `app_settings` (Opcional para V1, mas útil para flexibilidade)
+
+Armazena configurações globais da aplicação que podem precisar ser ajustadas sem deploy de código.
+
+| Coluna         | Tipo Primitivo Supabase | Restrições/Notas                               | Descrição (Português)                                                                    |
+| :------------- | :---------------------- | :--------------------------------------------- | :--------------------------------------------------------------------------------------- |
+| `setting_id`   | `SERIAL`                | `PRIMARY KEY`                                  | Identificador único da configuração.                                                     |
+| `setting_name` | `TEXT`                  | `NOT NULL`, `UNIQUE`                           | Nome da configuração (ex: "default_free_plan_id", "max_active_users", "api_football_key"). |
+| `setting_value`| `TEXT`                  | `NOT NULL`                                     | Valor da configuração.                                                                   |
+| `description`  | `TEXT`                  | `NULL`                                         | Breve descrição do que esta configuração controla.                                       |
+| `is_secure`    | `BOOLEAN`               | `NOT NULL`, `DEFAULT FALSE`                    | Indica se o valor é sensível e deve ser tratado com cuidado (ex: chaves de API).           |
+| `created_at`   | `TIMESTAMPTZ`           | `NOT NULL`, `DEFAULT CURRENT_TIMESTAMP`        | Data e hora de criação do registro.                                                      |
+| `updated_at`   | `TIMESTAMPTZ`           | `NOT NULL`, `DEFAULT CURRENT_TIMESTAMP`        | Data e hora da última atualização do registro.                                           |
+

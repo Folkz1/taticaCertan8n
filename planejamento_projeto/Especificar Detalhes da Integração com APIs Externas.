@@ -1,0 +1,82 @@
+# Etapa 9: Especificar Detalhes da Integração com APIs Externas - V1 apostacerta.AI
+
+Este documento detalha como o sistema apostacerta.AI se integrará com as APIs externas necessárias para sua operação.
+
+## 1. Evolution API (conectada a API não oficial do WhatsApp)
+
+*   **Função Principal:** Envio e recebimento de mensagens de texto com você via WhatsApp.
+*   **Recebimento de Mensagens (Webhook N8N):**
+    *   O N8N possui um webhook configurado para receber dados de novas mensagens.
+    *   O workflow N8N inicial (conforme compartilhado por você) extrai:
+        *   `final_user_message`: Texto da sua mensagem (após lógica de debounce/acumulação).
+        *   `conversation_id` (ou `numero_conversa`): Usado como `whatsapp_id` do remetente.
+        *   `nome_cliente`: Usado como seu `push_name`.
+*   **Envio de Mensagens (N8N -> Evolution API):**
+    *   Será utilizado o endpoint de envio de texto simples (ex: `POST /message/sendText/{instanceName}` ou equivalente da API não oficial).
+    *   Eu (Google Gemini) gerarei a string de texto completa para ser enviada.
+    *   Uma capacidade do N8N (`sendMessage(whatsapp_id, message_text_string)`) fará a chamada HTTP POST para a API da Evolution, passando o `conversation_id` e a `message_text_string`.
+
+## 2. Google Gemini API (Modelo: gemini-1.5-pro-latest)
+
+*   **Função Principal:** Processamento de linguagem natural, geração de texto, interpretação de intenções, e lógica de conversação dos Agentes de IA.
+*   **Interação Principal:** Chamadas HTTP POST para o endpoint `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=YOUR_API_KEY`.
+*   **Corpo da Requisição (JSON):** Estrutura com `contents: [{ parts: [{ text: "PROMPT DETALHADO AQUI..." }] }]` e `generationConfig` (para controlar temperatura, topK, etc.).
+*   **Prompts Chave Detalhados (Conforme esboçado e aprovado no planejamento):**
+    1.  **Geração de Menu em Texto:**
+        *   **Entrada (N8N para Gemini):** JSON com `user_name` (opcional), `active_analysis` (opcional), lista de `live_games` (agrupados por liga, cada jogo com `name` e `internal_reference_id` oculto a você), e lista de `other_options` (cada opção com `name` e `internal_reference_id`).
+        *   **Saída (Gemini para N8N):** String de texto formatada como menu, sem IDs visíveis, com saudação, análise ativa (se houver), jogos agrupados por liga, outras opções, e uma pergunta aberta ao final.
+    2.  **Interpretação da Sua Resposta ao Menu:**
+        *   **Entrada (N8N para Gemini):** Texto do menu que foi enviado, JSON com mapeamento de `displayed_text` para `internal_reference_id` de cada item do menu, e a sua `final_user_message`.
+        *   **Saída (Gemini para N8N):** String contendo o `internal_reference_id` da opção mais provável escolhida por você, ou "ID_NOT_FOUND".
+    3.  **Análise de Jogo (em duas partes):**
+        *   **Parte 1 (Overview + Pergunta Aberta):**
+            *   **Entrada:** JSON com `game_details` (incluindo estatísticas atuais, histórico recente/desgaste das equipes) e `user_profile` (opcional).
+            *   **Saída:** String com breve overview do jogo e uma pergunta aberta direcionada a você.
+        *   **Parte 2 (Análise Detalhada):**
+            *   **Entrada:** Histórico da conversa (incluindo a sua pergunta à Parte 1), `game_details` e `user_profile`.
+            *   **Saída:** String com análise detalhada (foco no jogo, estatísticas, desgaste, recomendação opcional alinhada ao seu perfil de risco, lembrete de gestão de banca).
+    4.  **ASPD (Agente Sumarizador e de Perfilamento Dinâmico):**
+        *   **Entrada:** Histórico da conversa recente, seu perfil existente (JSONB de `users.preferences`).
+        *   **Saída:** JSON contendo `updated_summary` (string do resumo da conversa) e `updated_preferences` (JSONB com seu perfil atualizado com novas preferências como times/ligas favoritas, etc.).
+    5.  **FAQ/Ajuda:**
+        *   **Entrada:** Sua pergunta e a resposta para essa pergunta (obtida da `knowledge_base` por uma capacidade do N8N).
+        *   **Saída:** String de texto formatando a resposta de forma amigável e perguntando se há mais dúvidas.
+    6.  **Outros Agentes (Onboarding, Pós-Análise):** Utilizarão Gemini para NLU das suas respostas e para gerar respostas conversacionais dentro de seus fluxos estruturados, com prompts específicos para cada etapa da conversa.
+*   **Gerenciamento de Histórico:** Para conversas multi-turno com um Agente específico, o N8N enviará o histórico relevante da conversa (últimas N mensagens ou resumo do ASPD) como parte do prompt para Gemini.
+
+## 3. football.api-sports (API-Football v3)
+
+*   **Função Principal:** Fornecer dados de jogos de futebol, ligas, times, estatísticas, etc.
+*   **Autenticação:** Cabeçalho `x-apisports-key` (ou equivalente, conforme tipo de assinatura).
+*   **Endpoints Principais (Requisições GET):**
+    *   `/status`: Para verificar status da conta e limites de requisição (não conta na cota diária).
+    *   `/leagues`: Para buscar e filtrar ligas. Parâmetros: `id`, `name`, `country`, `season`, `type="league"|"cup"`, `current="true"`. (Chamada recomendada: 1/hora).
+    *   `/fixtures`: Principal endpoint para jogos.
+        *   **Jogos em Andamento/Próximos:**
+            *   `live=all` ou `live={league_id1}-{league_id2}`.
+            *   OU `status={lista_de_status_live}` (ex: `1H-HT-2H-ET-P`) combinado com `date={YYYY-MM-DD}`.
+            *   Para "próximos de começar": `date={YYYY-MM-DD}`, `status=NS` (Not Started), e filtrar horários na aplicação (após ajuste de `timezone`).
+        *   **Todos os Jogos do Dia:** `date={YYYY-MM-DD}`, opcionalmente `league={id}`, `season`.
+        *   **Detalhes da Partida (para Análise):** `id={fixture_id}`. A resposta inclui `events`, `lineups`, `statistics` (jogo), `players` (estatísticas dos jogadores na partida).
+        *   **Contexto de Histórico/Desgaste:**
+            *   Buscar últimas X partidas de um time: `team={team_id}`, `season={year}`, `last={X}` (ex: X=5 ou 10), `status={lista_de_status_finalizados}` (ex: `FT-AET-PEN`).
+            *   Analisar datas para frequência, verificar prorrogações.
+        *   **Notificações Proativas (Jogos de Times Favoritos):** `team={team_id}`, `date={YYYY-MM-DD}` (ou `live=all`), `status=NS` (para "prestes a começar") ou status "live". Requer múltiplas chamadas se você tiver vários times favoritos, ou busca mais ampla com filtragem local.
+    *   `/timezone`: Para obter a lista de fusos horários válidos para usar nas queries de `fixtures`.
+*   **Frequência de Chamadas:** Respeitar os limites de taxa de cada endpoint (ex: `/fixtures` a cada 15s para jogos em progresso, 1/minuto para outros casos).
+
+## 4. Supabase API (PostgreSQL)
+
+*   **Função Principal:** Persistência e consulta de todos os dados da aplicação (usuários, planos, assinaturas, logs, etc.).
+*   **Interação:** As capacidades do N8N farão chamadas para a API REST ou usarão o SDK Javascript do Supabase para executar operações SQL.
+*   **Principais Operações (Conforme detalhado e aprovado na Etapa 7 e início da Etapa 9):**
+    *   **`users`:** SELECTs (para status, perfil, créditos, perdas, times favoritos, análise ativa), INSERT (novo usuário), UPDATEs (créditos, perfil, status de perdas, análise ativa, timestamps de notificação/reset, `preferences` JSONB).
+    *   **`plans`:** SELECTs (detalhes do plano).
+    *   **`user_subscriptions`:** INSERT (nova assinatura), SELECTs (para reset de créditos, expirações), UPDATE (desativar).
+    *   **`leagues`:** SELECTs (ligas ativas).
+    *   **`user_bets`:** INSERT (registrar feedback/aposta).
+    *   **`knowledge_base`:** SELECT (buscar por `kb_type` e `kb_key`).
+    *   **`interaction_log`:** INSERT (registrar eventos).
+    *   **`app_settings`:** SELECT (buscar configurações).
+*   **Segurança:** Utilizar as chaves de API do Supabase (anon e service_role) de forma segura nas configurações do N8N e aplicar Row Level Security (RLS) nas tabelas do Supabase.
+
