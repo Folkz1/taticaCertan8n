@@ -1,8 +1,10 @@
+-- Habilita a extensão pgcrypto se ainda não estiver habilitada (para gen_random_uuid())
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
 -- #############################################################################
--- ## FUNÇÃO PARA ATUALIZAR O TIMESTAMP DE 'updated_at' AUTOMATICAMENTE      ##
+-- ## FUNÇÃO PARA ATUALIZAR O TIMESTAMP DE 'updated_at' AUTOMATICAMENTE     ##
 -- #############################################################################
 
--- Crie esta função UMA VEZ no seu editor SQL.
 CREATE OR REPLACE FUNCTION trigger_set_timestamp()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -17,7 +19,7 @@ $$ LANGUAGE plpgsql;
 
 -- Tabela: users
 CREATE TABLE users (
-    user_id BIGSERIAL PRIMARY KEY,
+    user_id UUID PRIMARY KEY DEFAULT auth.uid(), -- MODIFICADO para UUID
     whatsapp_id TEXT NOT NULL UNIQUE,
     push_name TEXT NULL,
     bank_value DECIMAL(12, 2) NULL,
@@ -30,7 +32,7 @@ CREATE TABLE users (
     recent_loss_signals_count INTEGER NOT NULL DEFAULT 0,
     active_analysis_game_id TEXT NULL,
     active_analysis_details JSONB NULL,
-    current_subscription_id BIGINT NULL, -- FK será adicionada depois
+    current_subscription_id UUID NULL, -- MODIFICADO para UUID (FK para user_subscriptions)
     onboarding_completed_at TIMESTAMPTZ NULL,
     last_favorite_team_notification_at TIMESTAMPTZ NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -52,9 +54,9 @@ CREATE TABLE plans (
 
 -- Tabela: user_subscriptions
 CREATE TABLE user_subscriptions (
-    subscription_id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL, -- FK será adicionada depois
-    plan_id INTEGER NOT NULL, -- FK será adicionada depois
+    subscription_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), -- MODIFICADO para UUID
+    user_id UUID NOT NULL, -- MODIFICADO para UUID
+    plan_id INTEGER NOT NULL, -- FK para plans.plan_id
     start_date TIMESTAMPTZ NOT NULL DEFAULT now(),
     end_date TIMESTAMPTZ NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -82,20 +84,19 @@ CREATE TABLE leagues (
 -- Tabela: interaction_log
 CREATE TABLE interaction_log (
     log_id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NULL, -- FK será adicionada depois
-    "timestamp" TIMESTAMPTZ NOT NULL DEFAULT now(), -- Renomeado para evitar conflito com palavra reservada, se necessário, mas "timestamp" é aceitável em PostgreSQL se usado com aspas ou se não for o tipo de dado. Usarei "timestamp" conforme o original.
+    user_id UUID NULL, -- MODIFICADO para UUID
+    "timestamp" TIMESTAMPTZ NOT NULL DEFAULT now(),
     event_type TEXT NOT NULL,
     details JSONB NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-    -- updated_at não foi especificado para esta tabela
 );
 
 -- Tabela: user_bets
 CREATE TABLE user_bets (
     bet_id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL, -- FK será adicionada depois
+    user_id UUID NOT NULL, -- MODIFICADO para UUID
     game_id_api_football TEXT NULL,
-    league_id INTEGER NULL, -- FK será adicionada depois
+    league_id INTEGER NULL, -- FK para leagues.league_id
     bet_description TEXT NOT NULL,
     stake_amount DECIMAL(12, 2) NULL,
     odds DECIMAL(5, 2) NULL,
@@ -139,87 +140,195 @@ ALTER TABLE users
 ADD CONSTRAINT fk_users_current_subscription
 FOREIGN KEY (current_subscription_id)
 REFERENCES user_subscriptions(subscription_id)
-ON DELETE SET NULL; -- Define o que acontece se a assinatura referenciada for deletada
+ON DELETE SET NULL;
 
 -- Chave Estrangeira: user_subscriptions.user_id -> users.user_id
 ALTER TABLE user_subscriptions
 ADD CONSTRAINT fk_user_subscriptions_user
 FOREIGN KEY (user_id)
 REFERENCES users(user_id)
-ON DELETE CASCADE; -- Define o que acontece se o usuário referenciado for deletado
+ON DELETE CASCADE;
 
 -- Chave Estrangeira: user_subscriptions.plan_id -> plans.plan_id
 ALTER TABLE user_subscriptions
 ADD CONSTRAINT fk_user_subscriptions_plan
 FOREIGN KEY (plan_id)
 REFERENCES plans(plan_id)
-ON DELETE RESTRICT; -- Impede a exclusão de um plano se ele estiver em uso
+ON DELETE RESTRICT;
 
 -- Chave Estrangeira: interaction_log.user_id -> users.user_id
 ALTER TABLE interaction_log
 ADD CONSTRAINT fk_interaction_log_user
 FOREIGN KEY (user_id)
 REFERENCES users(user_id)
-ON DELETE SET NULL; -- Define o que acontece se o usuário referenciado for deletado
+ON DELETE SET NULL;
 
 -- Chave Estrangeira: user_bets.user_id -> users.user_id
 ALTER TABLE user_bets
 ADD CONSTRAINT fk_user_bets_user
 FOREIGN KEY (user_id)
 REFERENCES users(user_id)
-ON DELETE CASCADE; -- Define o que acontece se o usuário referenciado for deletado
+ON DELETE CASCADE;
 
 -- Chave Estrangeira: user_bets.league_id -> leagues.league_id
 ALTER TABLE user_bets
 ADD CONSTRAINT fk_user_bets_league
 FOREIGN KEY (league_id)
 REFERENCES leagues(league_id)
-ON DELETE SET NULL; -- Define o que acontece se a liga referenciada for deletada
+ON DELETE SET NULL;
 
 -- #############################################################################
 -- ## CRIAÇÃO DOS TRIGGERS PARA 'updated_at'                                  ##
 -- #############################################################################
 
--- Trigger para a tabela: users
 CREATE TRIGGER set_timestamp_users
 BEFORE UPDATE ON users
 FOR EACH ROW
 EXECUTE FUNCTION trigger_set_timestamp();
 
--- Trigger para a tabela: plans
 CREATE TRIGGER set_timestamp_plans
 BEFORE UPDATE ON plans
 FOR EACH ROW
 EXECUTE FUNCTION trigger_set_timestamp();
 
--- Trigger para a tabela: user_subscriptions
 CREATE TRIGGER set_timestamp_user_subscriptions
 BEFORE UPDATE ON user_subscriptions
 FOR EACH ROW
 EXECUTE FUNCTION trigger_set_timestamp();
 
--- Trigger para a tabela: leagues
 CREATE TRIGGER set_timestamp_leagues
 BEFORE UPDATE ON leagues
 FOR EACH ROW
 EXECUTE FUNCTION trigger_set_timestamp();
 
--- Trigger para a tabela: user_bets
 CREATE TRIGGER set_timestamp_user_bets
 BEFORE UPDATE ON user_bets
 FOR EACH ROW
 EXECUTE FUNCTION trigger_set_timestamp();
 
--- Trigger para a tabela: knowledge_base
 CREATE TRIGGER set_timestamp_knowledge_base
 BEFORE UPDATE ON knowledge_base
 FOR EACH ROW
 EXECUTE FUNCTION trigger_set_timestamp();
 
--- Trigger para a tabela: app_settings
 CREATE TRIGGER set_timestamp_app_settings
 BEFORE UPDATE ON app_settings
 FOR EACH ROW
 EXECUTE FUNCTION trigger_set_timestamp();
+
+
+-- #############################################################################
+-- ## CONFIGURAÇÃO DE ROW-LEVEL SECURITY (RLS)                                ##
+-- #############################################################################
+
+-- NOTA IMPORTANTE SOBRE AUTENTICAÇÃO:
+-- As políticas abaixo usam `auth.uid()` para obter o ID do usuário autenticado (tipo UUID).
+-- Este é um padrão comum em ambientes como Supabase.
+-- Se você estiver usando um mecanismo de autenticação diferente, substitua
+-- `auth.uid()` pela função ou variável de sessão apropriada que contém o ID do usuário
+-- autenticado no formato UUID.
+
+-- Tabela: users
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Usuários podem ver e modificar seus próprios dados"
+ON users
+FOR ALL
+USING (user_id = auth.uid())
+WITH CHECK (user_id = auth.uid());
+
+-- A política de INSERT abaixo funciona bem com `user_id UUID DEFAULT auth.uid()`
+-- pois garante que o user_id do novo registro corresponda ao usuário autenticado.
+CREATE POLICY "Usuários podem criar seu próprio registro (INSERT)"
+ON users
+FOR INSERT
+WITH CHECK (user_id = auth.uid());
+
+-- Tabela: plans
+ALTER TABLE plans ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Planos são publicamente visíveis para usuários autenticados"
+ON plans
+FOR SELECT
+USING (auth.role() = 'authenticated'); -- Ou `true` se qualquer um pode ver
+
+-- Para INSERT, UPDATE, DELETE em 'plans', crie políticas restritas a administradores.
+-- Exemplo:
+-- CREATE POLICY "Administradores podem gerenciar planos"
+-- ON plans
+-- FOR ALL
+-- USING (your_admin_check_function()) -- Substitua pela sua lógica de verificação de admin
+-- WITH CHECK (your_admin_check_function());
+
+-- Tabela: user_subscriptions
+ALTER TABLE user_subscriptions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Usuários podem gerenciar suas próprias assinaturas"
+ON user_subscriptions
+FOR ALL
+USING (user_id = auth.uid())
+WITH CHECK (user_id = auth.uid());
+
+-- Tabela: leagues
+ALTER TABLE leagues ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Ligas são publicamente visíveis para usuários autenticados"
+ON leagues
+FOR SELECT
+USING (auth.role() = 'authenticated'); -- Ou `true`
+
+-- Para INSERT, UPDATE, DELETE em 'leagues', políticas de administrador seriam apropriadas.
+
+-- Tabela: interaction_log
+ALTER TABLE interaction_log ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Usuários podem ver seus próprios logs de interação"
+ON interaction_log
+FOR SELECT
+USING (user_id = auth.uid());
+
+CREATE POLICY "Usuários podem registrar seus próprios logs de interação"
+ON interaction_log
+FOR INSERT
+WITH CHECK (user_id = auth.uid());
+-- UPDATE e DELETE em logs geralmente não são permitidos para usuários finais.
+
+-- Tabela: user_bets
+ALTER TABLE user_bets ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Usuários podem gerenciar suas próprias apostas"
+ON user_bets
+FOR ALL
+USING (user_id = auth.uid())
+WITH CHECK (user_id = auth.uid());
+
+-- Tabela: knowledge_base
+ALTER TABLE knowledge_base ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Itens da base de conhecimento são publicamente visíveis para usuários autenticados"
+ON knowledge_base
+FOR SELECT
+USING (auth.role() = 'authenticated'); -- Ou `true`
+
+-- Para INSERT, UPDATE, DELETE em 'knowledge_base', políticas de administrador.
+
+-- Tabela: app_settings
+ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Configurações não seguras são visíveis para usuários autenticados"
+ON app_settings
+FOR SELECT
+USING (is_secure = FALSE AND auth.role() = 'authenticated');
+
+-- Modificações e leitura de configs seguras devem ser para administradores.
+
+-- #############################################################################
+-- ## CONSIDERAÇÕES ADICIONAIS PARA RLS                                       ##
+-- #############################################################################
+-- 1. Administradores: Defina políticas específicas para roles de administrador.
+-- 2. `auth.uid()`: Este script agora assume que `auth.uid()` retorna UUID e as colunas user_id são UUID.
+-- 3. Testes: Teste exaustivamente suas políticas RLS.
+-- 4. Performance: Monitore queries, especialmente com RLS e subconsultas (se usadas em políticas complexas).
+-- 5. BYPASSRLS: Superusuários e roles com BYPASSRLS ignoram RLS. Use com cautela.
 
 -- Fim do script
