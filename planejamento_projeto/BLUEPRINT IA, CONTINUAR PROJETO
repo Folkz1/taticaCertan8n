@@ -1,0 +1,1000 @@
+# ApostaCerta.AI - Blueprint Mestre de Implementação V1.1
+
+**Data da Versão:** 31 de maio de 2025
+**Versão do Blueprint:** 1.1
+**Status:** Pronto para implementação e evolução contínua
+
+## 1. PROMPT MESTRE PARA QUALQUER IA (Guia de Implementação ApostaCerta.AI V1.1)
+
+"Olá, IA! Você é o especialista encarregado da implementação e evolução contínua do projeto **apostacerta.AI**, Versão 1.1.
+
+Sua missão é me auxiliar na construção dos fluxos de trabalho no N8N. Este projeto é um chatbot de análise de apostas esportivas via WhatsApp, orquestrado pelo N8N, utilizando Evolution API para comunicação, Supabase como banco de dados (já configurado conforme o schema fornecido) e você (IA Generativa como GPT-4/Claude/Gemini) para lógica de negócios e análise contextual.
+
+**Documentos de Referência Primária (Internalize-os):**
+
+1.  **`Scopo detalhado.txt` (V1.1):** Define O QUÊ o sistema deve fazer, funcionalidades, regras de negócio e a experiência do usuário. É a fonte da verdade para os requisitos. (Fornecido pelo usuário)
+2.  **`código postgresql.txt`:** Contém o schema COMPLETO e ATUALIZADO do banco de dados Supabase. Todos os nomes de tabelas e colunas para interações com o banco DEVEM seguir este schema. (Fornecido pelo usuário)
+3.  **Este Documento (Blueprint Mestre de Implementação V1.1):** Descreve COMO implementar a arquitetura, os agentes, as "tools" e os fluxos N8N. É o seu guia principal para a implementação.
+
+**Seu Entendimento é Crucial:**
+Confirme que você compreendeu a visão geral do projeto, a arquitetura multi-agentes proposta, as tecnologias envolvidas, os princípios de design dos agentes (uso de "tools", outputs padronizados, gestão de contexto) e a importância dos documentos de referência. Você deve SEMPRE consultar estes documentos para manter o contexto e fornecer a melhor assistência.
+
+**Estado Atual do Projeto:**
+O banco de dados Supabase está implantado com o schema de `código postgresql.txt`. A Evolution API está configurada e pronta para integração. O `Scopo detalhado.txt` define as funcionalidades da V1.1.
+
+**Meu Foco Imediato é:**
+Estou trabalhando na **[NOME/NÚMERO DA FASE ATUAL DO PLANO DE IMPLEMENTAÇÃO]** e, mais especificamente, na tarefa de **[DESCRIÇÃO DA TAREFA ESPECÍFICA EM N8N]**.
+
+**Como Você Vai me Ajudar Agora:**
+Com base no meu foco imediato, e seguindo os princípios deste Blueprint, quero que você me ajude a:
+    a. Esboçar a sequência de nós N8N para esta tarefa específica.
+    b. Detalhar a configuração dos nós chave (especialmente nós de IA, Function, Supabase e HTTP Request que atuarão como "Tools" ou serão chamados por elas).
+    c. Formular os prompts para os nós de IA (sejam eles o "cérebro" do agente ou parte de uma "tool"), garantindo que:
+        * Usem os nomes de campos corretos do Supabase (ex: `users.bank_value`, `users.investor_profile`).
+        * Recebam o contexto necessário (`user_data`, `incoming_message`, `short_term_context_history`).
+        * Produzam os outputs padronizados (`response_text`, `database_updates`, `current_interaction_summary`).
+    d. Sugerir como tratar condições, lógicas de ramificação e erros nesse fluxo específico.
+    e. Garantir que o `current_interaction_summary` gerado seja conciso e útil para o `short_term_context_history`.
+
+Vamos começar com a tarefa **[DESCRIÇÃO DA TAREFA ESPECÍFICA EM N8N]** da **[NOME/NÚMERO DA FASE ATUAL]**. Apresente suas sugestões para o fluxo N8N e os prompts relevantes."
+
+---
+
+## 2. DOCUMENTOS DE REFERÊNCIA PRIMÁRIA
+
+1.  **`Scopo detalhado.txt` (Versão 1.1):** Fornecido pelo usuário. Define os requisitos funcionais, regras de negócio e a experiência do usuário.
+2.  **`código postgresql.txt`:** Fornecido pelo usuário. Contém o schema completo do banco de dados Supabase. É a fonte da verdade para todas as interações com o banco.
+3.  **`Blueprint Mestre de Implementação V1.1` (Este Documento):** Guia central para a arquitetura, design de agentes, "tools" e implementação dos fluxos N8N.
+
+## 3. VISÃO GERAL DO PROJETO
+*(Conforme o blueprint original fornecido pelo usuário e o `Scopo detalhado.txt`)*
+
+* **Conceito Central:** Sistema multi-agentes N8N que usa Advanced AI com prompts inteligentes como lógica de negócio, substituindo IF/Switch por decisões contextuais da IA, para um chatbot de análise de apostas esportivas via WhatsApp.
+* **Objetivo (V1.1):** Automatizar e enriquecer a experiência de apostadores esportivos, fornecendo análises estatísticas e recomendações baseadas em IA diretamente no WhatsApp. Auxiliar na tomada de decisões mais informadas, no gerenciamento de banca personalizado (com base em perfis de risco e metas), na disciplina emocional (com alertas de perdas), através de uma interface conversacional intuitiva, eficiente e contextualizada.
+* **Fluxo Principal do Usuário:**
+    1.  **Onboarding:** Coleta de dados essenciais (`bank_value`, `daily_goal_value`, `goal_timeframe_days`, `investor_profile`, `favorite_teams`). Cálculo e apresentação de stake sugerida.
+    2.  **Menu Principal:** Apresentação de jogos disponíveis (com destaque para times favoritos e jogos já analisados), opções de perfil, ajuda, etc.
+    3.  **Análise de Jogo:** Consumo de crédito (para nova análise), busca de dados estatísticos, geração de análise pela IA, interação contextual sobre o jogo.
+    4.  **Retorno Gratuito:** Acesso a análises de jogos já pagos sem custo adicional enquanto relevantes.
+    5.  **Controle de Perdas:** Alertas proativos após perdas consecutivas.
+    6.  **Feedback de Apostas:** Coleta de feedback do usuário sobre o resultado de suas apostas em jogos analisados.
+
+## 4. ARQUITETURA TÉCNICA
+*(Conforme o blueprint original fornecido pelo usuário)*
+
+* **Stack Tecnológico:**
+    * **Orquestrador:** N8N (workflows visuais)
+    * **Comunicação:** Evolution API (WhatsApp)
+    * **Banco de Dados:** Supabase (PostgreSQL - schema em `código postgresql.txt`)
+    * **Inteligência Artificial:** GPT-4, Claude, Gemini (via Advanced AI nodes ou chamadas HTTP)
+    * **Dados Esportivos:** Football API-Sports (API Key e plano sob responsabilidade do cliente)
+    * **Autenticação (Usuário no DB):** Supabase Auth (user\_id é UUID, default `auth.uid()`)
+* **Arquitetura Multi-Agentes (N8N):**
+    * `Webhook (Evolution API)` → `01-hub-central.n8n (Roteador AI)` → `Agente Especializado (workflow .n8n)` → `Sub-fluxo: Persistência e Log Pós-Agente` → `Tool:SendMessageToUser (Evolution API)`
+
+## 5. ESTRUTURA DO BANCO DE DADOS (REFERÊNCIA)
+
+A fonte da verdade para a estrutura do banco de dados é o arquivo **`código postgresql.txt`**. Todos os nomes de tabelas e colunas DEVERÃO seguir este schema.
+
+**Tabelas Principais para Interação dos Agentes:**
+
+* **`users`**: Armazena dados do perfil do usuário, configurações de apostas, créditos, estado do onboarding, etc.
+    * Campos chave: `user_id (UUID, PK)`, `whatsapp_id (TEXT, UNIQUE)`, `push_name (TEXT)`, `bank_value (DECIMAL)`, `daily_goal_value (DECIMAL)`, `goal_timeframe_days (INTEGER)`, `investor_profile (TEXT)`, `favorite_teams (JSONB)`, `remaining_credits (INTEGER)`, `recent_loss_signals_count (INTEGER)`, `active_analysis_game_id (TEXT)`, `active_analysis_details (JSONB)`, `onboarding_completed_at (TIMESTAMPTZ)`.
+* **`interaction_log`**: Registra cada interação significativa do usuário com o sistema.
+    * Campos chave: `log_id (BIGSERIAL, PK)`, `user_id (UUID, FK)`, `timestamp (TIMESTAMPTZ)`, `event_type (TEXT)`, `details (JSONB)` (aqui será armazenado o `current_interaction_summary`).
+* **`user_bets`**: Histórico de apostas informadas pelo usuário.
+    * Campos chave: `bet_id (BIGSERIAL, PK)`, `user_id (UUID, FK)`, `game_id_api_football (TEXT)`, `bet_description (TEXT)`, `stake_amount (DECIMAL)`, `result (TEXT)`.
+* **`leagues`**: Informações sobre ligas de futebol.
+* **`plans` / `user_subscriptions`**: Para futuras funcionalidades de planos e assinaturas.
+
+**Nota sobre Nomenclatura (Português vs. Inglês):**
+* A interface com o usuário (perguntas do bot, textos de ajuda) deve ser em Português, conforme o `Scopo detalhado.txt` (ex: "Qual sua banca inicial?").
+* Todas as operações de banco de dados, nomes de variáveis internas nos fluxos N8N e chaves em objetos JSON trocados entre nós devem usar os nomes das colunas em Inglês, conforme o `código postgresql.txt` (ex: `bank_value`).
+* A IA dos agentes será responsável por essa tradução/mapeamento ao formular perguntas e processar respostas.
+
+## 6. PRINCÍPIOS DE DESIGN DOS AGENTES E FLUXOS N8N
+
+Esta seção define como os agentes N8N devem ser construídos e como eles interagem.
+
+### 6.1. Agentes como Orquestradores de "Tools"
+* **IA Principal do Agente:** O nó de IA central de cada agente (ex: "Agente Onboarding") é responsável pela lógica da conversa, entendimento da intenção do usuário (com base na mensagem e contexto), e decisão de quais "Tools" chamar.
+* **"Tools":** São sub-fluxos N8N reutilizáveis ou nós N8N especializados e configurados (ex: Nó Supabase, Nó HTTP Request, Nó Function) que executam tarefas atômicas e bem definidas.
+    * Exemplos: buscar dados no Supabase, chamar uma API externa, enviar uma mensagem formatada via Evolution API, realizar cálculos complexos.
+* **Fluxo de Controle:** O Agente IA chama uma ou mais tools sequencialmente ou condicionalmente. Cada tool retorna dados estruturados para o Agente IA.
+* **Formulação da Resposta Final:** Após receber e processar os resultados de todas as tools necessárias para o turno atual, a IA Principal do Agente formula a `response_text` final para o usuário.
+
+### 6.2. Output Padronizado de um Agente
+Cada agente principal, ao final de seu processamento para um turno de interação, deve produzir um output JSON estruturado com os seguintes campos:
+
+* **`response_text` (String | Null):**
+    * A mensagem exata a ser enviada ao usuário via WhatsApp.
+    * Pode ser `null` se uma "Tool" específica (ex: `Tool:SendMessageToUser`) já enviou a mensagem necessária e o agente não tem nada a acrescentar textualmente naquele turno (ex: apenas realizou uma atualização de dados em background).
+* **`database_updates` (Object | Null):**
+    * Um objeto JSON especificando as alterações a serem persistidas no Supabase. A estrutura deve facilitar a atualização por um sub-fluxo genérico.
+    * Formato Exemplo:
+        ```json
+        {
+          "users": { // Nome da tabela
+            "update": { // Operação
+              "pk_column": "user_id", // Coluna da chave primária
+              "pk_value": "uuid-do-usuario", // Valor da chave primária
+              "fields": { // Campos a serem atualizados
+                "bank_value": 1000.50,
+                "investor_profile": "equilibrado",
+                "active_analysis_game_id": null
+              }
+            }
+          },
+          "user_bets": { // Outra tabela
+            "insert": { // Operação
+              "fields": {
+                "user_id": "uuid-do-usuario",
+                "game_id_api_football": "game123",
+                "bet_description": "Vitória Time A",
+                "stake_amount": 50
+              }
+            }
+          }
+        }
+        ```
+    * Pode ser `null` se nenhuma atualização no banco de dados for necessária.
+* **`current_interaction_summary` (String):**
+    * Um resumo textual **conciso e focado** da interação que acabou de ocorrer.
+    * **Propósito Principal:**
+        1.  Alimentar o `short_term_context_history` para a *próxima* interação do mesmo agente ou do Roteador.
+        2.  Servir como um log de interação humano-legível e útil na tabela `interaction_log.details`.
+    * **Conteúdo Ideal:**
+        * Intenção principal do usuário na mensagem recebida.
+        * Ação principal ou resposta chave do bot.
+        * Dados críticos coletados ou decisões importantes tomadas (ex: "Usuário definiu banca como R$500", "Análise do jogo X iniciada").
+        * Estado resultante ou próxima expectativa clara (ex: "Aguardando resposta sobre perfil de risco", "Menu principal apresentado").
+    * **Deve ser breve e evitar redundância** com os `user_data` completos que já são carregados.
+* **`next_module_or_state` (String | Null):** (Opcional)
+    * Usado para transições explícitas de estado interno do agente ou para indicar qual o próximo agente/módulo deveria ser chamado pelo Roteador Central, se aplicável.
+
+### 6.3. Contexto para os Agentes (Inputs Essenciais)
+Cada agente principal e o Roteador devem receber um conjunto padronizado de inputs para processamento:
+
+* **`user_data` (Object):**
+    * Objeto JSON contendo os dados completos e mais recentes do usuário, carregados da tabela `users` do Supabase (e potencialmente outras tabelas relacionadas, se necessário).
+* **`incoming_message` (String):**
+    * A mensagem textual exata enviada pelo usuário no turno atual.
+* **`short_term_context_history` (Array[String]):**
+    * Um array contendo os `current_interaction_summary` das N interações mais recentes (ex: últimas 3-5).
+    * Recuperado da tabela `interaction_log` (ordenado por `timestamp` DESC, limitado a N).
+    * Este é o mecanismo chave para fornecer contexto de curto prazo à IA do agente.
+* **`conversation_id` (String):**
+    * Identificador da conversa (ex: `whatsapp_id` do usuário).
+* **`current_timestamp` (String):**
+    * Timestamp atual (ISO 8601) para referência.
+* **`active_game_data` (Object | Null):** (Específico para agentes de análise)
+    * Se houver um jogo em análise ativa, este objeto conteria os detalhes carregados desse jogo.
+
+### 6.4. Sub-fluxo N8N Padrão: "Persistência e Log Pós-Agente"
+Um workflow N8N reutilizável, chamado **após** cada agente principal concluir seu processamento e gerar seu output padronizado.
+
+* **Inputs:** `user_id` (ou `whatsapp_id`), `database_updates` (objeto), `current_interaction_summary` (string).
+* **Responsabilidades:**
+    1.  **Executar Atualizações no Supabase:** Iterar sobre o objeto `database_updates`. Para cada tabela e operação (insert/update/delete), construir e executar a query correspondente usando o Nó Supabase.
+    2.  **Salvar Log de Interação:** Inserir um novo registro na tabela `interaction_log` com `user_id`, `timestamp` (atual), `event_type` (pode ser genérico como "agent\_interaction" ou mais específico se fornecido pelo agente), e o `current_interaction_summary` no campo `details`.
+
+### 6.5. Fluxos de Dados Padronizados (Geral)
+
+**Input Padrão (para o Hub Central / Roteador AI):**
+```json
+{
+  "conversation_id": "5511999999999", // Geralmente o whatsapp_id
+  "push_name": "João Silva", // Nome do usuário no WhatsApp, se disponível
+  "message": "Quais os jogos de hoje?",
+  "timestamp": "2025-05-31T14:30:00Z", // Timestamp da mensagem recebida
+  "metadata": { // Metadados da plataforma de origem
+    "message_type": "text",
+    "platform": "whatsapp",
+    "raw_message_payload": {} // Payload original da Evolution API
+  }
+}
+
+Input Interno Padrão (para cada Agente Especializado, após o Roteador e o carregamento de dados):
+
+{
+  "conversation_id": "5511999999999",
+  "user_data": { // Carregado do Supabase - Tabela 'users' e potencialmente outros
+    "user_id": "uuid-do-usuario",
+    "whatsapp_id": "5511999999999",
+    "push_name": "João Silva",
+    "onboarding_completed_at": "2025-05-30T10:00:00Z",
+    "bank_value": 1000.00,
+    "daily_goal_value": 100.00,
+    "goal_timeframe_days": 10,
+    "investor_profile": "equilibrado",
+    "favorite_teams": ["Flamengo", "Santos"],
+    "remaining_credits": 3,
+    "recent_loss_signals_count": 1,
+    "active_analysis_game_id": "game_123",
+    "active_analysis_details": { /* ... */ }
+    // ... todos os campos relevantes da tabela users
+  },
+  "incoming_message": "Quero analisar o jogo do Flamengo.",
+  "short_term_context_history": [
+    "Summary da interação N-2",
+    "Summary da interação N-1: Usuário pediu menu. Menu principal apresentado com 3 jogos."
+  ],
+  "current_timestamp": "2025-05-31T14:32:00Z",
+  "jogos_disponiveis_api": [ /* Array de jogos da Football API, se já carregado pelo Menu ou Roteador */ ],
+  "active_game_data": { /* Detalhes do jogo ativo, se houver */ }
+}
+
+Output Padrão (de cada Agente Especializado, antes do sub-fluxo de Persistência e Log):
+
+{
+  "agente_usado": "analise-nova", // Nome do agente que processou
+  "response_text": "Analisando Flamengo x Palmeiras. Para começar, você gostaria de um resumo das estatísticas H2H ou a forma recente das equipes?",
+  "database_updates": {
+    "users": {
+      "update": {
+        "pk_column": "user_id",
+        "pk_value": "uuid-do-usuario",
+        "fields": {
+          "remaining_credits": 2,
+          "active_analysis_game_id": "game_flaxpal",
+          "active_analysis_details": { "status": "iniciada", "jogo_info": { /*...*/ }}
+        }
+      }
+    }
+  },
+  "current_interaction_summary": "Usuário solicitou análise do jogo Flamengo x Palmeiras. Crédito consumido. Análise iniciada. Perguntado sobre foco inicial (H2H ou forma).",
+  "next_module_or_state": null, // Ou, por exemplo, "aguardando_foco_analise"
+  "metadata_processamento": { // Metadados sobre o processamento do agente
+    "processing_time_ms": 1200,
+    "tokens_used_ia": 245,
+    "tools_called": ["Tool:FetchGameDetails", "Tool:ConsumeCredit"]
+  }
+}
+
+7. SISTEMA DE ROTEAMENTO INTELIGENTE (HUB CENTRAL)
+O workflow 01-hub-central.n8n é o ponto de entrada após o Webhook da Evolution API.
+
+Responsabilidades:
+
+Receber a mensagem do usuário.
+
+Tool Call: Tool:FetchOrCreateUser:
+
+Input: whatsapp_id, push_name.
+
+Output: user_data (completo, seja novo ou existente), is_new_user.
+
+Tool Call: Tool:FetchInteractionHistory:
+
+Input: user_id.
+
+Output: short_term_context_history (últimas N interações).
+
+Advanced AI Roteador (Nó de IA Principal do Hub):
+
+Inputs: user_data, incoming_message, short_term_context_history, is_new_user.
+
+Prompt Template (Roteador Principal):
+
+Você é o roteador inteligente do apostacerta.AI. Sua função é direcionar a mensagem do usuário para o agente especializado correto.
+
+CONTEXTO DO USUÁRIO:
+- User ID: {{user_data.user_id}}
+- Nome: {{user_data.push_name}}
+- Onboarding Completo: {{user_data.onboarding_completed_at ? 'Sim' : 'Não'}}
+- Créditos Restantes: {{user_data.remaining_credits}}
+- Jogo em Análise Ativa (ID): {{user_data.active_analysis_game_id || 'Nenhum'}}
+- Detalhes Análise Ativa: {{JSON.stringify(user_data.active_analysis_details) || 'Nenhum'}}
+
+HISTÓRICO RECENTE DA CONVERSA (ÚLTIMAS INTERAÇÕES):
+{{#each short_term_context_history}}
+- {{this}}
+{{/each}}
+
+MENSAGEM ATUAL DO USUÁRIO: "{{incoming_message}}"
+
+ANÁLISE DE INTENÇÃO E DIRECIONAMENTO:
+Com base em todos os dados acima, especialmente o status do onboarding, se há uma análise ativa, o histórico recente e a mensagem atual, determine a intenção REAL do usuário e qual agente deve tratar esta mensagem.
+
+AGENTES DISPONÍVEIS:
+- "onboarding": Para usuários novos (onboarding_completed_at é NULO) ou que explicitamente pedem para refazer/ver onboarding.
+- "menu": Para mostrar opções principais, listar jogos, se o usuário pede para voltar ao menu ou se não há intenção clara para outro agente.
+- "analise-nova": Se o usuário quer analisar um jogo NOVO (e não tem um ativo OU quer trocar o ativo). Requer créditos.
+- "analise-ativa": Se o usuário está interagindo sobre um jogo JÁ EM ANÁLISE ATIVA (user_data.active_analysis_game_id está preenchido e a mensagem é sobre este jogo). Não consome crédito.
+- "controle-perdas": (Gatilho especial) Se `user_data.recent_loss_signals_count` atingir o limite.
+- "utilitarios": Para gerenciar perfil, ver créditos, pedir ajuda geral sobre o bot.
+
+LÓGICA DE DECISÃO:
+1. Se `user_data.onboarding_completed_at` é NULO E `is_new_user` é TRUE → "onboarding"
+2. Se `user_data.onboarding_completed_at` é NULO E `is_new_user` é FALSE (usuário abandonou onboarding) → "onboarding"
+3. Se `incoming_message` indica intenção de sair/voltar/menu (ex: "menu", "sair", "voltar", "opções") → "menu"
+4. Se `user_data.active_analysis_game_id` está preenchido:
+   - A `incoming_message` é claramente sobre o `active_analysis_game_id` (verificar no histórico também)? → "analise-ativa"
+   - A `incoming_message` menciona um jogo DIFERENTE ou pede para analisar outro? → "analise-nova" (perguntar confirmação de troca se necessário)
+   - Caso contrário, se mensagem genérica → "menu" (ou "analise-ativa" se o contexto recente for forte)
+5. Se `user_data.active_analysis_game_id` é NULO:
+   - A `incoming_message` menciona um jogo específico ou pede para analisar um jogo? → "analise-nova"
+   - A `incoming_message` pede lista de jogos, opções gerais? → "menu"
+6. Se `incoming_message` se refere a perfil, créditos, ajuda → "utilitarios"
+
+Se `user_data.recent_loss_signals_count` >= 3 (ou valor configurado) → priorizar "controle-perdas" se a última mensagem não foi dele.
+
+FORMATO DA RESPOSTA:
+Retorne APENAS o nome do agente em minúsculas (ex: "onboarding", "menu").
+
+Executar Workflow (Nó N8N): Chamar o workflow do agente determinado pelo Roteador AI, passando o Input Interno Padrão.
+
+Sub-fluxo: "Persistência e Log Pós-Agente": Chamado após o agente retornar.
+
+Tool Call: Tool:SendMessageToUser: Enviar a response_text (se não for nula) retornada pelo agente (ou pelo sub-fluxo de persistência) para o usuário.
+
+8. AGENTES ESPECIALIZADOS
+Cada agente é um workflow N8N separado. Abaixo, a estrutura e o core de cada um.
+
+8.1. Agente Onboarding (onboarding.n8n)
+Função: Coletar dados iniciais do usuário, calcular stake e total de apostas diárias, e marcar o onboarding como completo. Guiado pelo Scopo detalhado.txt.
+
+Inputs Esperados: user_data, incoming_message, short_term_context_history.
+
+Prompt Core (IA do Agente Onboarding):
+
+Você é o agente de onboarding do apostacerta.AI. Sua tarefa é guiar o usuário pela coleta de dados essenciais de forma amigável e em português. Use o `short_term_context_history` para entender o que já foi perguntado ou respondido.
+
+DADOS DO USUÁRIO (do Supabase):
+{{JSON.stringify(user_data, null, 2)}}
+
+HISTÓRICO RECENTE DA CONVERSA:
+{{#each short_term_context_history}}
+- {{this}}
+{{/each}}
+
+MENSAGEM ATUAL DO USUÁRIO: "{{incoming_message}}"
+
+ETAPAS DO ONBOARDING (conforme `Scopo detalhado.txt`, verificar o que falta em `user_data`):
+1. Boas-vindas (se for a primeira interação do onboarding).
+2. Coletar `bank_value` (Banca Inicial, ex: R$ 1000).
+3. Coletar `daily_goal_value` (Meta de Lucro Diária, ex: R$ 100).
+4. Coletar `goal_timeframe_days` (Prazo para Meta em Dias, ex: 10 dias).
+5. Apresentar Perfis de Risco (Conservador, Equilibrado, Agressivo) e coletar `investor_profile`.
+   - Conservador: Stake 2% banca, 5 apostas/dia.
+   - Equilibrado: Stake 5% banca, 3 apostas/dia.
+   - Agressivo: Stake 10% banca, 1-2 apostas/dia (com alerta de risco).
+6. Coletar `favorite_teams` (Array de strings, ex: ["Time A", "Time B"]).
+7. Calcular Stake Sugerida e Total de Apostas Diárias.
+8. Apresentar resumo e finalizar onboarding.
+
+LÓGICA DE PROCESSAMENTO:
+1. Determine qual informação é a PRÓXIMA a ser coletada com base nos campos NULOS ou não preenchidos em `user_data` e na ordem das etapas.
+2. Analise a `incoming_message` e o `short_term_context_history`:
+    - O usuário está respondendo à pergunta anterior? Extraia o valor.
+    - O usuário forneceu a informação espontaneamente? Extraia o valor.
+3. Se um valor foi extraído:
+    - VALIDE o valor (ex: banca é número positivo? Perfil é uma das opções válidas?).
+    - Se válido: Prepare `database_updates` para o campo coletado. Determine a PRÓXIMA informação a ser coletada ou se o onboarding finalizou. Formule uma `response_text` de confirmação e para a próxima pergunta (ou de finalização).
+    - Se inválido: Formule uma `response_text` explicando o erro e pedindo a informação novamente. `database_updates` será nulo.
+4. Se NENHUMA informação relevante foi extraída da `incoming_message` para a etapa atual:
+    - Formule a `response_text` para PERGUNTAR sobre a informação da etapa atual. `database_updates` será nulo.
+5. Se todas as informações foram coletadas:
+    - Calcule a stake e o total de apostas (baseado no perfil e banca).
+    - Prepare `database_updates` para salvar os cálculos, os últimos dados coletados e `onboarding_completed_at = NOW()`, `remaining_credits = X` (valor inicial de créditos).
+    - Formule uma `response_text` de finalização do onboarding, apresentando a stake e o total de apostas.
+    - Indique `next_module_or_state = "menu"`.
+
+TOOLS A SEREM ORQUESTRADAS (Conceitual):
+- Nenhuma tool externa é chamada diretamente por este prompt. A IA decide o texto e as atualizações. O envio da mensagem e a persistência são feitos por tools chamadas pelo fluxo N8N após este nó de IA.
+
+OUTPUT ESPERADO (JSON):
+{
+  "response_text": "Sua mensagem para o usuário...",
+  "database_updates": { /* objeto para Supabase */ },
+  "current_interaction_summary": "Resumo focado desta interação de onboarding.",
+  "next_module_or_state": "onboarding" // ou "menu" se finalizado
+}
+
+"Tools" Comumente Utilizadas (orquestradas pelo fluxo N8N do agente, não pela IA diretamente):
+
+Tool:FetchUserData (no início, feito pelo Hub)
+
+Tool:UpdateUserData (via sub-fluxo "Persistência e Log")
+
+Tool:SendMessageToUser (para enviar a response_text)
+
+Tool:LogInteraction (via sub-fluxo "Persistência e Log")
+
+Exemplo de current_interaction_summary Gerado:
+
+"Onboarding: Usuário respondeu banca R$500. Perguntado sobre meta de lucro diária."
+
+"Onboarding: Usuário escolheu perfil 'Conservador'. Apresentado cálculo de stake 2%. Perguntado sobre times favoritos."
+
+"Onboarding: Finalizado. Stake 5% (R$50), 3 apostas/dia. Usuário recebeu X créditos."
+
+Sugestão de Fluxo N8N (Alto Nível):
+
+Receber inputs (user_data, incoming_message, short_term_context_history).
+
+Nó Advanced AI (Agente Onboarding): Executar o "Prompt Core" acima.
+
+Receber output (response_text, database_updates, current_interaction_summary, next_module_or_state).
+
+Chamar Sub-fluxo "Persistência e Log Pós-Agente": Passar database_updates e current_interaction_summary.
+
+Tool Call: Tool:SendMessageToUser: Enviar response_text (se não nula).
+
+Se next_module_or_state for "menu", o Hub Central pode ser sinalizado para chamar o Agente Menu no próximo ciclo se não houver mais interação do Onboarding.
+
+(Estrutura similar será aplicada para os outros agentes: Menu, Análise Nova, Análise Ativa, Controle de Perdas, Utilitários. Devido à complexidade, detalharei o Agente Menu como mais um exemplo e listarei os demais de forma mais concisa, focando nas suas particularidades.)
+
+8.2. Agente Menu (menu.n8n)
+Função: Apresentar jogos disponíveis (buscando da Football API), opções de perfil, ajuda, e permitir navegação. Destacar jogos de times favoritos e jogos já analisados (retorno gratuito).
+
+Inputs Esperados: user_data, incoming_message, short_term_context_history.
+
+Prompt Core (IA do Agente Menu):
+
+Você é o agente de menu do apostacerta.AI. Sua tarefa é apresentar as opções principais e a lista de jogos de forma clara e útil.
+
+DADOS DO USUÁRIO:
+{{JSON.stringify(user_data, null, 2)}}
+
+HISTÓRICO RECENTE:
+{{#each short_term_context_history}}
+- {{this}}
+{{/each}}
+
+MENSAGEM DO USUÁRIO: "{{incoming_message}}" // Pode ser "menu", ou uma escolha anterior do menu.
+
+JOGOS DISPONÍVEIS (Resultado da Tool:GetFootballGameList):
+{{JSON.stringify(jogos_disponiveis_api, null, 2)}} // Array de jogos com IDs, nomes, horários, status, liga.
+
+LÓGICA DE PROCESSAMENTO:
+1.  Se `incoming_message` for uma escolha específica de um jogo listado anteriormente, a intenção provavelmente é "analise-nova" ou "analise-ativa". Este agente deve preparar o output para o Roteador lidar com isso (ou já direcionar se a lógica for simples).
+2.  Caso contrário, formate a mensagem do menu principal.
+3.  Destaque jogos dos `user_data.favorite_teams`.
+4.  Marque jogos que já estão em `user_data.active_analysis_game_id` ou que foram analisados recentemente (verificar `interaction_log` por `event_type='analysis_started'` para o mesmo `game_id_api_football` no dia) com um ícone 🔁 (retorno gratuito).
+5.  Organize os jogos por ligas principais (conforme `leagues.display_order`).
+6.  Mostre horários e status dos jogos (NS, 1H, HT, 2H, FT).
+7.  Apresente outras opções: "📊 Meus Dados (Banca/Perfil)", "💡 Como funciona?", "❤️ Meus Times Favoritos".
+8.  Se `user_data.active_analysis_game_name` estiver preenchido, adicione uma opção "↩️ Continuar análise: {{user_data.active_analysis_game_name}}".
+
+TOOLS A SEREM ORQUESTRADAS (Pelo fluxo N8N antes deste prompt):
+- `Tool:GetFootballGameList` (para obter `jogos_disponiveis_api`)
+- `Tool:CheckRecentlyAnalyzedGames` (para marcar jogos com 🔁)
+
+OUTPUT ESPERADO (JSON):
+{
+  "response_text": "Menu formatado para WhatsApp...",
+  "database_updates": null, // Geralmente nulo para o menu, a menos que se atualize algo como 'last_menu_access'
+  "current_interaction_summary": "Menu principal apresentado com X jogos. Destaque para Y. Usuário em {{user_data.active_analysis_game_name}} (se houver).",
+  "next_module_or_state": "aguardando_escolha_menu"
+}
+
+"Tools" Comumente Utilizadas:
+
+Tool:GetFootballGameList (chamada pelo fluxo N8N antes da IA do agente)
+
+Tool:FetchLeaguesInfo (para organizar por ligas)
+
+Tool:CheckRecentlyAnalyzedGames (para identificar jogos para retorno gratuito)
+
+Tool:SendMessageToUser
+
+Tool:LogInteraction
+
+Exemplo de current_interaction_summary Gerado:
+
+"Menu: Apresentados 5 jogos do Brasileirão e 3 da Premier League. Jogo 'Flamengo x Palmeiras' marcado como retorno gratuito."
+
+"Menu: Usuário visualizou o menu principal. Nenhuma análise ativa."
+
+Sugestão de Fluxo N8N (Alto Nível):
+
+Receber inputs.
+
+Tool Call: Tool:GetFootballGameList (parâmetros: ligas prioritárias, status dos jogos 'NS', 'LIVE', etc.).
+
+Tool Call: Tool:CheckRecentlyAnalyzedGames (input: user_id, lista de jogos da tool anterior; output: lista de jogos com flag is_returnable).
+
+Nó Advanced AI (Agente Menu): Executar "Prompt Core", passando a lista de jogos enriquecida.
+
+Processar output do agente e chamar sub-fluxos de persistência e envio de mensagem.
+
+8.3. Agente Análise Nova (analise-nova.n8n)
+Função: Identificar o jogo que o usuário quer analisar, validar e consumir crédito, buscar dados do jogo, chamar IA para análise, apresentar a análise.
+
+Particularidades:
+
+Verifica user_data.remaining_credits. Se > 0, consome 1.
+
+Pede confirmação antes de consumir crédito se for uma troca de análise ativa.
+
+Atualiza user_data.active_analysis_game_id e active_analysis_details.
+
+Usa Tool:GetFootballGameStatistics e Tool:GenerateSportAnalysisAI (que é um prompt especializado para a IA de análise esportiva).
+
+current_interaction_summary Exemplo: "Análise Nova: Jogo 'Corinthians x São Paulo' identificado. Crédito validado (restam 2). Análise gerada e enviada. Stake sugerida: 5%."
+
+8.4. Agente Análise Ativa (analise-ativa.n8n)
+Função: Continuar uma análise de jogo já iniciada e paga. Não consome crédito. Responde a perguntas contextuais sobre o user_data.active_analysis_game_id.
+
+Particularidades:
+
+Foco principal no user_data.active_analysis_details e short_term_context_history para entender as perguntas do usuário sobre o jogo ativo.
+
+Pode usar Tool:GetFootballGameStatistics para buscar dados atualizados se o jogo estiver ao vivo.
+
+Usa Tool:GenerateSportAnalysisAI para responder perguntas específicas ou fornecer mais insights.
+
+Se o usuário quiser sair, pergunta sobre o resultado da aposta (Tool:AskBetResult).
+
+current_interaction_summary Exemplo: "Análise Ativa (Jogo X): Usuário perguntou sobre estatísticas de posse de bola. Resposta fornecida."
+
+8.5. Agente Controle de Perdas (controle-perdas.n8n)
+Função: Monitorar user_data.recent_loss_signals_count. Se atingir o limite (ex: 3), envia mensagem de alerta e sugestão de pausa.
+
+Particularidades:
+
+Pode ser acionado pelo Roteador ou por um gatilho após o usuário reportar uma perda (via Agente Análise Ativa ou Utilitários).
+
+Prompt da IA focado em empatia e conselhos de gestão emocional.
+
+Pode ter uma database_update para resetar recent_loss_signals_count após um tempo ou confirmação do usuário.
+
+current_interaction_summary Exemplo: "Controle Perdas: Usuário atingiu 3 perdas. Mensagem de alerta e pausa estratégica enviada."
+
+8.6. Agente Utilitários (utilitarios.n8n)
+Função: Lidar com solicitações de visualização/edição de perfil (bank_value, investor_profile, favorite_teams), consulta de créditos, ajuda sobre o bot.
+
+Particularidades:
+
+A IA do agente interpreta qual utilitário o usuário deseja.
+
+Pode precisar de múltiplos turnos para edição de dados (ex: perguntar novo valor da banca, confirmar).
+
+Para "Como funciona?", apresenta texto explicativo sobre créditos, análises, etc.
+
+current_interaction_summary Exemplo: "Utilitários: Usuário visualizou perfil. Banca: R$X, Perfil: Y." ou "Utilitários: Usuário atualizou times favoritos para Z, W."
+
+9. CATÁLOGO DE "TOOLS" (Sub-Fluxos N8N Reutilizáveis ou Nós Especializados)
+Estas são as "ferramentas" conceituais que os fluxos dos agentes N8N irão orquestrar. Cada uma pode ser um sub-workflow N8N dedicado ou um nó N8N específico (Supabase, HTTP Request, Function) devidamente configurado.
+
+Tool:FetchOrCreateUser
+
+Responsabilidade: Verifica se um usuário com o whatsapp_id fornecido existe na tabela users. Se existir, retorna seus dados. Se não, cria um novo usuário com valores default (ex: push_name, remaining_credits inicial, onboarding_completed_at = NULL) e retorna os dados do novo usuário.
+
+Inputs: whatsapp_id (String), push_name (String, opcional).
+
+Output: { user_data (Object), is_new_user (Boolean) }.
+
+Nós N8N: Supabase (SELECT, INSERT).
+
+Tool:FetchUserData
+
+Responsabilidade: Busca todos os dados de um usuário específico da tabela users.
+
+Inputs: user_id (UUID).
+
+Output: { user_data (Object) }.
+
+Nós N8N: Supabase (SELECT).
+
+Tool:UpdateUserData
+
+Responsabilidade: Atualiza campos específicos de um usuário na tabela users. Usado pelo sub-fluxo "Persistência e Log".
+
+Inputs: user_id (UUID), fields_to_update (Object).
+
+Output: { status (String), updated_user_data (Object, opcional) }.
+
+Nós N8N: Supabase (UPDATE).
+
+Tool:FetchInteractionHistory
+
+Responsabilidade: Busca os N current_interaction_summary mais recentes para um usuário da tabela interaction_log.
+
+Inputs: user_id (UUID), limit (Integer, default 3-5).
+
+Output: { short_term_context_history (Array[String]) }.
+
+Nós N8N: Supabase (SELECT com ORDER BY timestamp DESC, LIMIT).
+
+Tool:LogInteractionEvent
+
+Responsabilidade: Insere um novo registro na tabela interaction_log. Usado pelo sub-fluxo "Persistência e Log".
+
+Inputs: user_id (UUID), event_type (String), summary (String).
+
+Output: { status (String) }.
+
+Nós N8N: Supabase (INSERT).
+
+Tool:SendMessageToUser
+
+Responsabilidade: Envia uma mensagem de texto para o usuário via Evolution API.
+
+Inputs: whatsapp_id (String), text_message (String).
+
+Output: { status (String), message_id_api (String, opcional) }.
+
+Nós N8N: HTTP Request (para Evolution API).
+
+Tool:GetFootballGameList
+
+Responsabilidade: Busca a lista de jogos de futebol (das ligas configuradas, com status específico) da Football API-Sports.
+
+Inputs: league_ids (Array[String]), date (String, YYYY-MM-DD), status (String, ex: "NS,LIVE"), timezone (String).
+
+Output: { jogos_disponiveis_api (Array[Object]) } (cada objeto com fixture_id, home_team, away_team, league_name, event_timestamp, status, etc.).
+
+Nós N8N: HTTP Request (para Football API-Sports).
+
+Tool:GetFootballGameStatistics
+
+Responsabilidade: Busca estatísticas detalhadas para um jogo específico da Football API-Sports.
+
+Inputs: fixture_id (String).
+
+Output: { game_statistics (Object) }.
+
+Nós N8N: HTTP Request (para Football API-Sports).
+
+Tool:CheckRecentlyAnalyzedGames
+
+Responsabilidade: Verifica, para uma lista de jogos, quais já foram analisados pelo usuário recentemente (para marcar como retorno gratuito). Consulta interaction_log.
+
+Inputs: user_id (UUID), game_list (Array[Object]).
+
+Output: game_list_with_return_flag (Array[Object]).
+
+Nós N8N: Supabase (SELECT), Function Node (para lógica de verificação).
+
+Tool:ConsumeCredit
+
+Responsabilidade: Decrementa remaining_credits do usuário.
+
+Inputs: user_id (UUID).
+
+Output: { status (String), new_credit_balance (Integer) }.
+
+Nós N8N: Supabase (UPDATE users SET remaining_credits = remaining_credits - 1).
+
+Tool:GenerateSportAnalysisAI
+
+Responsabilidade: Submete dados de um jogo e perfil do usuário a um modelo de IA especializado para gerar uma análise esportiva, recomendação ou responder a uma pergunta específica. (Este é um prompt de IA mais complexo, ver seção "Prompts Especializados").
+
+Inputs: game_data (Object), user_profile (Object), analysis_focus_question (String, opcional).
+
+Output: { analysis_text (String), recommendation (Object, opcional) }.
+
+Nós N8N: Advanced AI Node.
+
+Tool:AskBetResult
+
+Responsabilidade: Envia uma mensagem ao usuário perguntando o resultado da aposta em um jogo que ele estava analisando.
+
+Inputs: whatsapp_id (String), game_name (String).
+
+Output: { status (String) }.
+
+Nós N8N: Tool:SendMessageToUser.
+
+10. SISTEMA DE CRÉDITOS
+(Conforme o blueprint original e Scopo detalhado.txt)
+
+Consumo: 1 crédito por NOVA análise de jogo (quando Tool:GetFootballGameStatistics ou Tool:GenerateSportAnalysisAI é chamada pela primeira vez para um fixture_id específico para aquele usuário, no dia ou período relevante).
+
+Retorno Gratuito: Análise ativa ou retorno a um jogo já pago (identificado por Tool:CheckRecentlyAnalyzedGames) não consome crédito adicional.
+
+Reset/Recarga: Créditos podem ser resetados diariamente (via reset-credits.n8n agendado) ou atribuídos conforme planos/regras de negócio (ex: X créditos no onboarding). Tabela users.credits_last_reset_at pode controlar o reset diário.
+
+Controle: Tool:ConsumeCredit é chamada pelo Agente "Análise Nova". O Agente verifica user_data.remaining_credits antes.
+
+11. ESTRUTURA DOS WORKFLOWS N8N (Organização de Arquivos)
+(Conforme o blueprint original)
+
+workflows/
+├── 00-webhook-evolution.n8n   # Recebe de Evolution, passa para o Hub
+├── 01-hub-central.n8n         # Roteador AI principal
+├── agentes/
+│   ├── onboarding.n8n
+│   ├── menu.n8n
+│   ├── analise-nova.n8n
+│   ├── analise-ativa.n8n
+│   ├── utilitarios.n8n
+│   └── controle-perdas.n8n
+├── tools/                     # Sub-fluxos reutilizáveis (Tools)
+│   ├── supabase-fetch-user.n8n
+│   ├── supabase-update-user.n8n
+│   ├── supabase-log-interaction.n8n
+│   ├── evolution-send-message.n8n
+│   ├── football-api-get-games.n8n
+│   └── football-api-get-stats.n8n
+│   └── ai-generate-sport-analysis.n8n
+├── subfluxos_comuns/
+│   └── persistencia-e-log-pos-agente.n8n
+└── scheduled/
+    └── reset-credits.n8n
+
+12. CONFIGURAÇÃO ADVANCED AI NODES
+(Conforme o blueprint original, ajustar conforme o modelo de IA escolhido - Gemini, GPT, Claude)
+
+Provider: google-gemini, openai, anthropic.
+
+Model: Especificar o modelo (ex: gemini-pro, gpt-4-turbo, claude-3-opus).
+
+Temperature:
+
+Para Roteamento e decisões lógicas: Baixa (ex: 0.1 - 0.3).
+
+Para Geração de Análise Esportiva e Respostas Criativas: Moderada (ex: 0.5 - 0.7).
+
+Max Tokens: Ajustar conforme a complexidade da tarefa e o output esperado.
+
+Response Format: json_object quando a IA do agente precisa retornar a estrutura padronizada (response_text, database_updates, current_interaction_summary). text para respostas mais diretas dentro de algumas tools.
+
+13. PROMPTS ESPECIALIZADOS (Exemplos)
+Prompt para Tool:GenerateSportAnalysisAI
+(Este é um prompt mais complexo, usado pela tool que o "Agente Análise Nova" ou "Análise Ativa" orquestraria)
+
+Você é um analista esportivo expert do apostacerta.AI. Sua tarefa é fornecer uma análise detalhada e imparcial do jogo de futebol solicitado, ou responder a uma pergunta específica sobre ele, considerando o perfil do usuário.
+
+JOGO PARA ANÁLISE:
+{{JSON.stringify(game_data_from_api_sports, null, 2)}}
+/* game_data_from_api_sports inclui:
+   - Informações da partida (times, liga, data, placar atual se ao vivo)
+   - Estatísticas H2H recentes
+   - Forma recente das equipes (últimos 5-10 jogos, resultados, gols)
+   - Estatísticas detalhadas da partida (se disponíveis/ao vivo: posse, chutes, cantos, cartões, etc.)
+   - Desfalques importantes (se disponíveis)
+*/
+
+PERFIL DO USUÁRIO:
+- Banca Atual: R$ {{user_data.bank_value}}
+- Perfil de Risco: {{user_data.investor_profile}} (Conservador, Equilibrado, Agressivo)
+- Stake Sugerida (calculada no onboarding): {{user_data.stake_sugerida_percentual}}% (aproximadamente R$ {{user_data.stake_sugerida_valor}})
+- Times Favoritos: {{JSON.stringify(user_data.favorite_teams)}}
+
+HISTÓRICO RECENTE DA CONVERSA SOBRE ESTE JOGO (se houver):
+{{#each short_term_context_history_for_this_game}}
+- {{this}}
+{{/each}}
+
+FOCO DA ANÁLISE / PERGUNTA DO USUÁRIO (se aplicável):
+"{{analysis_focus_question || 'Forneça uma análise geral e identifique uma oportunidade de aposta.'}}"
+
+INSTRUÇÕES PARA A ANÁLISE:
+1.  **Contexto do Confronto (2-3 linhas):** Importância do jogo, rivalidade, situação na tabela.
+2.  **Análise das Equipes:**
+    * Desempenho recente, pontos fortes e fracos.
+    * Como as estatísticas (posse, chutes, xG se disponível) refletem seu estilo de jogo.
+    * Impacto de desfalques.
+3.  **Estatísticas Chave Relevantes:** Destaque os dados mais importantes do `game_data_from_api_sports` que suportam sua análise.
+4.  **Identificação de Oportunidade (se o foco for análise geral):**
+    * Sugira um mercado de aposta (ex: Resultado Final, Ambas Marcam, Total de Gols Over/Under, Handicap Asiático, Marcadores).
+    * Justifique a escolha com base na análise e estatísticas.
+    * Indique uma faixa de odd que consideraria de valor (ex: "Odd mínima sugerida: 1.85"). *Não prometa ganhos.*
+5.  **Recomendação de Stake (se aplicável e uma oportunidade for identificada):**
+    * Sugira um percentual da stake padrão do usuário (ex: 0.5x, 1x, 1.5x da stake calculada no onboarding), justificando com base no nível de confiança e no perfil de risco.
+    * Ex: "Para seu perfil {{user_data.investor_profile}}, uma stake de {{0.5 * user_data.stake_sugerida_percentual}}% da sua banca (R$ {{0.5 * user_data.stake_sugerida_valor}}) seria prudente para esta aposta."
+6.  **Resposta à Pergunta Específica (se `analysis_focus_question` existir):** Responda diretamente à pergunta do usuário usando os dados disponíveis.
+7.  **Alerta de Gestão de Banca:** SEMPRE inclua uma frase lembrando da importância do gerenciamento de banca e de apostar com responsabilidade.
+8.  **Pergunta Engajante (Opcional, se for análise geral):** Termine com uma pergunta para incentivar o usuário a explorar mais algum aspecto (ex: "Gostaria de analisar as estatísticas de escanteios ou o desempenho do artilheiro da equipe X?").
+
+TONE E ESTILO:
+- Objetivo, analítico e baseado em dados.
+- Imparcial, mesmo que um dos times seja favorito do usuário.
+- Linguagem clara e acessível para apostadores.
+- Evite jargões excessivos sem explicação.
+- NUNCA garanta resultados ou lucros. Enfatize que são análises e sugestões.
+
+FORMATO DA RESPOSTA (TEXTO):
+Produza um texto corrido e bem formatado para WhatsApp. Use emojis com moderação para melhorar a legibilidade.
+
+14. SISTEMA DE MONITORAMENTO
+(Conforme o blueprint original e Scopo detalhado.txt)
+
+Logs Essenciais (Tabela interaction_log):
+
+user_id, timestamp, event_type (ex: onboarding_step, menu_displayed, analysis_requested, analysis_generated, credit_consumed, error_api_football, user_message_unclear), details (contendo o current_interaction_summary e outros metadados relevantes da interação).
+
+Métricas Importantes (a serem extraídas dos logs):
+
+Tempo de resposta por agente/tool.
+
+Taxa de conclusão do onboarding.
+
+Uso de créditos por usuário/dia.
+
+Jogos/Ligas mais analisados.
+
+Taxa de "retorno gratuito" a análises.
+
+Engajamento com o Agente de Controle de Perdas.
+
+Pontos de abandono no funil de interação.
+
+15. PLANO DE IMPLEMENTAÇÃO (Fases Sugeridas)
+(Adaptado do blueprint original e Scopo detalhado.txt)
+
+Fase 0: Setup e Fundação (Já parcialmente concluído)
+
+[X] Configurar Supabase (schema de código postgresql.txt aplicado).
+
+[X] Configurar Evolution API (pronta para integração).
+
+[ ] Configurar N8N com nós Advanced AI e acesso às APIs.
+
+[ ] Configurar Football API (chave e plano).
+
+[ ] Criar workflow 00-webhook-evolution.n8n.
+
+[ ] Implementar Tool:FetchOrCreateUser e Tool:FetchInteractionHistory.
+
+Fase 1: Hub Central + Roteador (Dia 1-2)
+
+[ ] Criar workflow 01-hub-central.n8n.
+
+[ ] Implementar Advanced AI Roteador (Prompt Core e lógica de decisão).
+
+[ ] Implementar sub-fluxo persistencia-e-log-pos-agente.n8n.
+
+[ ] Implementar Tool:SendMessageToUser.
+
+[ ] Testar roteamento básico com dados mock para user_data e short_term_context_history.
+
+Fase 2: Agente Onboarding (Dia 3-5)
+
+[ ] Criar workflow agentes/onboarding.n8n.
+
+[ ] Implementar o "Prompt Core" da IA do Agente Onboarding.
+
+[ ] Desenvolver lógica N8N para gerenciar as etapas do onboarding (coleta sequencial, validação).
+
+[ ] Integrar com Tool:UpdateUserData (via sub-fluxo de persistência).
+
+[ ] Implementar cálculo de stake e apostas diárias.
+
+[ ] Testes ponta a ponta do onboarding completo.
+
+Fase 3: Agente Menu e Listagem de Jogos (Dia 6-7)
+
+[ ] Criar workflow agentes/menu.n8n.
+
+[ ] Implementar Tool:GetFootballGameList e Tool:CheckRecentlyAnalyzedGames.
+
+[ ] Implementar o "Prompt Core" da IA do Agente Menu para formatação da lista de jogos e opções.
+
+[ ] Testar apresentação do menu, destaque de favoritos e jogos retornáveis.
+
+Fase 4: Agentes de Análise (Nova e Ativa) e Sistema de Créditos (Dia 8-11)
+
+[ ] Criar workflows agentes/analise-nova.n8n e agentes/analise-ativa.n8n.
+
+[ ] Implementar Tool:ConsumeCredit.
+
+[ ] Implementar Tool:GetFootballGameStatistics.
+
+[ ] Implementar Tool:GenerateSportAnalysisAI (com o prompt especializado).
+
+[ ] Desenvolver "Prompt Core" e lógica N8N para ambos os agentes de análise.
+
+[ ] Gerenciar estado de active_analysis_game_id e active_analysis_details.
+
+[ ] Testar fluxo completo de análise nova (com consumo de crédito) e análise ativa (gratuita, contextual).
+
+Fase 5: Agente Controle de Perdas e Utilitários (Dia 12-13)
+
+[ ] Criar workflows agentes/controle-perdas.n8n e agentes/utilitarios.n8n.
+
+[ ] Implementar lógica de gatilho para controle de perdas.
+
+[ ] Desenvolver "Prompt Core" e lógica N8N para estes agentes.
+
+[ ] Testar alertas de perda e funcionalidades de perfil/ajuda.
+
+Fase 6: Testes Integrados, Refinamento de Prompts e Otimização (Dia 14-15)
+
+[ ] Testar todos os fluxos de ponta a ponta com múltiplos cenários.
+
+[ ] Ajustar prompts de IA com base nos resultados e qualidade das respostas.
+
+[ ] Otimizar performance dos workflows N8N.
+
+[ ] Revisar tratamento de erros e mensagens ao usuário.
+
+Fase 7: Documentação Final e Preparação para Deploy (Dia 16)
+
+[ ] Finalizar documentação interna dos workflows N8N.
+
+[ ] Preparar variáveis de ambiente para produção.
+
+16. CHECKLIST DE VALIDAÇÃO (V1.1)
+(Conforme Scopo detalhado.txt e este blueprint)
+
+Funcionalidades Core:
+
+[ ] Usuário completa onboarding (banca, meta, prazo, perfil, times), dados salvos, stake calculada.
+
+[ ] Roteador IA direciona corretamente para cada agente com base no contexto.
+
+[ ] short_term_context_history é corretamente carregado e utilizado pelos agentes.
+
+[ ] current_interaction_summary é gerado de forma concisa e útil por cada agente.
+
+[ ] Sub-fluxo "Persistência e Log Pós-Agente" funciona corretamente.
+
+[ ] Menu mostra jogos (Football API), destaca favoritos e retornos gratuitos (🔁).
+
+[ ] Nova análise consome 1 crédito, busca estatísticas, IA gera análise e é enviada.
+
+[ ] Retorno à análise ativa é gratuito e contextual.
+
+[ ] Agente Controle de Perdas alerta após X perdas.
+
+[ ] Agente Utilitários permite ver/alterar perfil e obter ajuda.
+
+[ ] Dados persistem corretamente no Supabase conforme código postgresql.txt.
+
+[ ] Integração com WhatsApp via Evolution API funciona para envio e recebimento.
+
+Performance e Usabilidade:
+
+[ ] Tempo de resposta aceitável (< 5-10 segundos para interações complexas com IA).
+
+[ ] Mensagens bem formatadas e claras no WhatsApp.
+
+[ ] Tratamento de erros amigável (falhas de API, input inválido).
+
+[ ] Logs de monitoramento (interaction_log) são abrangentes.
+
+Segurança e Dados:
+
+[ ] RLS (Row Level Security) ativo e funcional no Supabase (conforme código postgresql.txt).
+
+[ ] Chaves de API (Football API, IA, Evolution) protegidas como variáveis de ambiente no N8N.
+
+[ ] Dados do usuário isolados corretamente.
+
+17. RECURSOS E REFERÊNCIAS
+(Conforme o blueprint original)
+
+APIs Utilizadas: Football API-Sports, Supabase, Evolution API, OpenAI/Claude/Gemini.
+
+Documentação N8N: Advanced AI Nodes, HTTP Request, Supabase Node, Webhooks, Sub-Workflows (Execute Workflow).
+
+18. TROUBLESHOOTING COMUM
+(Conforme o blueprint original)
+
+Timeout APIs Externas: Aumentar timeout nos nós HTTP Request; implementar retentativas com backoff exponencial.
+
+Erro Supabase RLS: Verificar políticas de segurança no código postgresql.txt e se o usuário da API N8N tem as permissões corretas.
+
+WhatsApp não recebe/envia: Verificar webhook da Evolution API, status da instância, formato do payload.
+
+IA não responde JSON (quando esperado): Ajustar prompt (pedir explicitamente JSON), verificar temperature, maxTokens, ou usar nós N8N para extrair/transformar a resposta da IA.
+
+Contexto da IA Incorreto: Depurar o short_term_context_history e os user_data passados para o prompt. Verificar a qualidade do current_interaction_summary.
+
+19. PRÓXIMOS PASSOS PARA COMEÇAR (Com este Blueprint)
+Revisão Completa: Revise este Blueprint Mestre V1.1 para garantir que todos os aspectos estão cobertos e claros.
+
+Configuração do Ambiente N8N: Certifique-se de que o N8N está pronto, com acesso às APIs e nós necessários.
+
+Implementação Incremental: Siga o Plano de Implementação fase por fase.
+
+Comece pelo 00-webhook-evolution.n8n e 01-hub-central.n8n, incluindo as "Tools" básicas de busca de usuário e histórico.
+
+Implemente um agente por vez, testando-o exaustivamente antes de passar para o próximo.
+
+Foco nas "Tools" Primeiro: Muitas "Tools" são sub-fluxos genéricos. Implementá-las e testá-las individualmente pode acelerar o desenvolvimento dos agentes.
+
+Iteração nos Prompts: Os prompts da IA (Roteador, Agentes, Análise Esportiva) provavelmente necessitarão de várias iterações e testes para alcançar a qualidade desejada.
+
+Validação Contínua: Use o Checklist de Validação ao final de cada fase e antes do deploy final.
+
+IMPORTANTE: Este blueprint é um guia vivo. Conforme o projeto evolui e novos aprendizados surgem, ele pode (e deve) ser atualizado para refletir o estado mais recente e as melhores práticas identificadas.
+
+
+Este Blueprint Mestre V1.1 agora está significativamente mais detalhado e incorpora todos os princípios e estruturas que discutimos. Ele deve fornecer uma base sólida para qualquer IA ou desenvolvedor continuar o projeto ApostaCerta.AI com clareza e consistência.
+
+O que você acha? Há algo mais que gostaria de adicionar ou refinar neste momento antes de considerarmos esta versão do blueprint pronta para guiar a implementação?
