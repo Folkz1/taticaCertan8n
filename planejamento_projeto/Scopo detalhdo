@@ -1,0 +1,368 @@
+apostacerta.AI - Documento de Escopo do Projeto - Versão 1.1 (Atualizado)
+Data de Elaboração: 31 de maio de 2025
+
+1. Visão Geral
+Nome do Projeto: apostacerta.AI - Versão 1.1
+Resumo do Projeto: Desenvolvimento de um chatbot via WhatsApp, utilizando n8n como orquestrador, Evolution API para comunicação, Supabase para persistência de dados, e Inteligência Artificial (Google Gemini ou OpenAI ChatGPT) para fornecer análises e recomendações de apostas esportivas (futebol). A versão 1.1 aprimora o onboarding do usuário com perfis de investimento e cálculo de stake personalizado, introduz um agente de controle de perdas, permite o acompanhamento de times favoritos e enriquece a análise de partidas com maior contexto e interatividade.
+Data da Versão Anterior (V1): 22 de maio de 2025
+
+2. Objetivo Principal do Projeto (V1.1)
+Automatizar e enriquecer a experiência de apostadores esportivos, fornecendo análises estatísticas e recomendações baseadas em IA diretamente no WhatsApp. Auxiliar na tomada de decisões mais informadas, no gerenciamento de banca personalizado (com base em perfis de risco e metas), na disciplina emocional (com alertas de perdas), através de uma interface conversacional intuitiva, eficiente e contextualizada.
+
+3. Escopo da Versão Atualizada (V1.1)
+3.1. Plataforma de Orquestração:
+
+Desenvolvimento e configuração de fluxos na plataforma n8n.
+
+3.2. Interface de Comunicação WhatsApp:
+
+Integração e configuração com a Evolution API para envio e recebimento de mensagens.
+
+3.3. Banco de Dados (Supabase):
+
+Modelagem e configuração de tabelas para armazenar:
+
+Dados do Usuário:
+
+ID do WhatsApp
+
+banca_inicial (Valor)
+
+meta_lucro (Valor)
+
+prazo_meta_dias (Tempo em dias)
+
+perfil_risco (Conservador, Equilibrado, Agressivo)
+
+stake_sugerida (Calculada)
+
+total_apostas_diarias_recomendadas (Calculada)
+
+times_favoritos (Array de strings, ex: ["Corinthians", "Real Madrid"])
+
+contagem_creditos_analise
+
+historico_perdas_consecutivas (Integer)
+
+Histórico Básico:
+
+Log simplificado de interações ou análises solicitadas.
+
+jogos_em_analise_ativa: (Estrutura para armazenar ID do jogo e estado, permitindo retorno sem novo custo de crédito).
+
+historico_apostas_jogo: (Para registrar feedback do usuário sobre apostas feitas em um jogo analisado).
+
+Configurações da Aplicação (se necessário).
+
+3.4. Fluxo de Onboarding do Usuário:
+
+Mensagem de boas-vindas e apresentação do Tática Certa ScoutMind.AI.
+
+Coleta interativa do valor da banca_inicial do usuário (Ex: R$ 1.000).
+
+Coleta interativa da meta_lucro do usuário (Ex: R$ 500).
+
+Coleta interativa do prazo_meta_dias para alcançar a meta (Ex: 10 dias).
+
+Apresentação dos perfis de risco e coleta da escolha do usuário:
+
+Conservador: Stake = 2% da banca. (Ex: Banca R1000,StakeR20. Total de apostas diárias sugeridas: 5. Mensagem: "Mais apostas com risco menor por entrada. Ideal para quem preza pela estabilidade.")
+
+Equilibrado: Stake = 5% da banca. (Ex: Banca R1000,StakeR50. Total de apostas diárias sugeridas: 3. Mensagem: "Combina ritmo e controle para quem busca consistência e progresso diário.")
+
+Agressivo: Stake = 10% da banca. (Ex: Banca R1000,StakeR100. Total de apostas diárias sugeridas: 1-2. Mensagem: "Poucas apostas por dia com alto risco e potencial de lucro rápido. Use com atenção! 🔴 Alerta: Essa estratégia pode levar à perda da sua banca em apenas uma entrada.")
+
+Coleta interativa dos times_favoritos do usuário.
+
+Armazenamento dos dados de onboarding no Supabase.
+
+Apresentação da stake sugerida e total de apostas diárias.
+
+3.5. Menu Principal Interativo no WhatsApp:
+
+Apresentação de opções claras via botões ou lista.
+
+Opção: "🏆 Ver Jogos das Ligas Principais"
+
+Aviso: "Estes são os jogos em tempo real ou começando em breve."
+
+(lista de ligas a ser definida, ex: Brasileirão Série A, Premier League, La Liga, etc.).
+
+Mensagens das ligas com os jogos separados em blocos.
+
+Indicação visual (ex: 🔁) para jogos que o usuário iniciou análise e pode retornar sem custo.
+
+Opção: "🔄 Atualizar Lista de Jogos".
+
+Opção: "📊 Meus Dados (Banca/Meta/Perfil/Stake)".
+
+Opção: "💡 Como funciona?" (explicação breve sobre créditos/análises).
+
+Opção: "❤️ Meus Times Favoritos" (listar times e talvez próximos jogos se houver).
+
+3.6. Seleção e Análise de Partida:
+
+Listagem de jogos em andamento ou com início próximo (conforme disponibilidade da API football.api-sports).
+
+Seleção de uma partida específica pelo usuário.
+
+Mensagem de confirmação de gasto de crédito ao escolher um jogo pela primeira vez para análise.
+
+Sistema de Créditos (V1.1 Aprimorado):
+
+Cada sessão de análise de partida consome 1 crédito. O crédito é debitado na primeira vez que o bot precisa consultar uma API externa (football.api-sports ou IA) para a partida selecionada.
+
+Usuário recebe X créditos iniciais (a definir, ex: no onboarding ou um limite diário).
+
+Aviso de consumo de crédito antes de iniciar a análise (se for a primeira vez para aquele jogo).
+
+Contagem de créditos gerenciada no Supabase.
+
+Permitir retornar a uma análise de partida já iniciada (e com crédito já consumido) sem novo custo, enquanto a partida estiver ativa ou relevante.
+
+Consumo da API football.api-sports para obter estatísticas detalhadas do jogo selecionado.
+
+Formulação de prompt otimizado e chamada à API de IA (Gemini ou ChatGPT) com:
+
+Estatísticas do jogo atual.
+
+Contexto do histórico recente das equipes (ex: número de jogos recentes, possível fadiga).
+
+Opcionalmente, contexto do usuário (ex: perfil de risco, meta).
+
+Apresentação da análise da IA no WhatsApp, incluindo:
+
+Breve overview da situação do jogo e das estatísticas chave.
+
+Recomendação de aposta (se a IA identificar oportunidade, com base em padrões).
+
+Lembrete sobre gestão de banca e controle emocional.
+
+Finalizar com uma pergunta guiada para o usuário interagir com base na análise (ex: "Com base nisso, você gostaria de saber mais sobre as chances de gols para o Time A ou as estatísticas de posse de bola?").
+
+3.7. Interação Pós-Análise:
+
+Permitir que o usuário faça perguntas contextuais sobre a partida analisada.
+
+Mecanismo para manter o foco no jogo selecionado; se o usuário desviar o assunto, o bot deve gentilmente sugerir voltar ao menu ou focar na análise atual.
+
+Se o usuário sair da análise de um jogo em andamento: avisar que o crédito para aquele jogo já foi utilizado e confirmar se ele tem certeza, informando o tempo restante aproximado do jogo.
+
+3.8. Retorno ao Menu / Novas Análises:
+
+Após a interação, ou a qualquer momento, o usuário pode solicitar voltar ao menu.
+
+Se o usuário estava analisando um jogo e retorna ao menu antes do término, o sistema deve perguntar: "Como foram suas apostas nesse jogo? Isso nos ajuda a entender seu progresso." (Registrar resposta de forma simplificada).
+
+O jogo que estava em análise (e teve crédito consumido) deve ser marcado no menu para que o usuário possa retornar a ele sem custo adicional enquanto relevante.
+
+3.9. Agente de Controle de Perdas:
+
+O sistema deve monitorar o número de perdas consecutivas reportadas pelo usuário (ou inferidas).
+
+Se um número X de perdas seguidas for atingido (a definir), o bot enviará uma mensagem proativa: "Percebi que você teve algumas perdas seguidas. Que tal fazer uma pausa por hoje e voltar mais tarde com a mente fresca? Lembre-se, o controle emocional é fundamental!"
+
+3.10. Notificações de Times Favoritos:
+
+O sistema poderá (a depender da complexidade e prioridade para V1.1) enviar um follow-up/notificação quando um dos times favoritos do usuário tiver um jogo prestes a começar ou em andamento, sugerindo uma análise.
+
+3.11. Alertas e Mensagens do Sistema:
+
+Aviso se um jogo selecionado for muito recente e ainda não possuir estatísticas suficientes na API.
+
+Mensagem informativa se não houver jogos das ligas principais disponíveis no momento da consulta.
+
+Tratamento básico de erros na comunicação com APIs externas (esportes, IA), informando o usuário sobre instabilidades.
+
+3.12. Documentação Técnica:
+
+Breve manual de configuração dos fluxos n8n.
+
+Descrição das tabelas e estrutura no Supabase.
+
+3.13. Fora do Escopo (O que NÃO ESTÁ INCLUÍDO na V1.1 e será considerado EXTRA):
+
+Atenção: Qualquer funcionalidade não explicitamente listada nas "Entregas Principais da V1.1", ou qualquer desvio ou adição ao escopo aqui definido, será considerada um item extra e orçada separadamente.
+
+Integração com plataformas de apostas para realização automática de apostas.
+
+Análise de outros esportes além do futebol.
+
+Sistema de pagamento para compra de créditos.
+
+4. Processo / Workflow Proposto (Visão Geral da Interação do Usuário)
+4.1. Primeiro Contato / Onboarding:
+
+Usuário envia mensagem inicial para o número do taticacerta.AI no WhatsApp.
+
+Bot responde com mensagem de boas-vindas e inicia o fluxo de onboarding (coleta de banca, meta, prazo, perfil de risco e times favoritos).
+
+Bot calcula e apresenta stake sugerida e total de apostas diárias.
+
+Dados são salvos no Supabase. Bot apresenta o menu principal.
+
+4.2. Navegação e Seleção de Jogo:
+
+Usuário interage com o menu para ver jogos.
+
+Bot busca jogos na football.api-sports e os exibe, indicando os que podem ser retomados.
+
+Usuário seleciona um jogo.
+
+4.3. Análise e Interação:
+
+Bot verifica créditos. Se for a primeira análise para o jogo, informa sobre o consumo e pede confirmação (se aplicável), debitando o crédito.
+
+Ao confirmar (ou se já tiver crédito debitado para esse jogo), bot busca estatísticas (considerando histórico/contexto), chama a IA e apresenta a análise (overview + pergunta guiada).
+
+Usuário pode fazer perguntas contextuais sobre a análise.
+
+Agente de controle de perdas monitora e intervém se necessário.
+
+4.4. Retorno ao Menu / Novas Análises:
+
+Após a interação, ou a qualquer momento, o usuário pode solicitar voltar ao menu.
+
+Se estava em uma análise, pergunta sobre as apostas feitas.
+
+O usuário pode escolher outro jogo (consumindo novo crédito se for o primeiro acesso àquele jogo) ou retornar a um jogo já analisado (sem novo custo).
+
+5. Tecnologias e Ferramentas (V1.1)
+Orquestração da Automação: N8N (instância do cliente ou nova a ser configurada).
+
+Comunicação WhatsApp: Evolution API (instância gerenciada pelo cliente ou a ser configurada).
+
+Inteligência Artificial (IA): Google Gemini ou OpenAI ChatGPT.
+
+Preferência a ser definida com o cliente.
+
+Justificativa da Flexibilidade: Permite escolher o modelo que melhor se adequar em termos de custo, qualidade da resposta para o caso de uso (incluindo análise contextual) e facilidade de integração.
+
+Fonte de Dados Esportivos (Futebol): football.api-sports (API Key e plano de uso sob responsabilidade do cliente).
+
+Banco de Dados: Supabase (PostgreSQL gerenciado).
+
+Justificativa: Facilidade de configuração, APIs REST/GraphQL automáticas, tier gratuito generoso para MVP, escalabilidade.
+
+6. Requisitos Funcionais e Não Funcionais Chave (V1.1)
+6.1. Requisitos Funcionais:
+
+O sistema deve interagir com o usuário exclusivamente via WhatsApp (Evolution API).
+
+Deve coletar e usar informações de banca, meta, prazo e perfil de risco para calcular e sugerir stake e total de apostas diárias, persistindo esses dados no Supabase.
+
+Deve coletar e armazenar times favoritos do usuário.
+
+Deve buscar (via football.api-sports) e apresentar jogos de futebol de ligas pré-definidas, indicando jogos em tempo real.
+
+Deve consumir dados detalhados da partida da football.api-sports.
+
+Deve integrar com a API de IA (Gemini ou ChatGPT) para gerar análises contextuais (histórico de equipes, etc.) e recomendações.
+
+A IA deve iniciar a análise com um overview e uma pergunta para guiar a interação.
+
+Deve apresentar as análises de forma clara e estruturada no WhatsApp.
+
+Deve permitir a atualização da lista de jogos sob demanda.
+
+Deve gerenciar o fluxo da conversa, mantendo o foco na análise atual ou redirecionando ao menu.
+
+Deve gerenciar um sistema de créditos de análise, com débito no primeiro uso de API externa para um jogo e permitir retorno sem novo custo.
+
+Deve permitir ao usuário retornar a uma análise de jogo em andamento sem consumir novo crédito.
+
+Deve implementar um agente de controle de perdas que alerta o usuário após X perdas consecutivas.
+
+Deve perguntar sobre o resultado das apostas quando o usuário sai de uma análise de jogo.
+
+Opcional/Desejável: Deve notificar usuários sobre jogos de seus times favoritos.
+
+6.2. Requisitos Não Funcionais:
+
+Usabilidade: Interface conversacional intuitiva e com respostas rápidas.
+
+Performance: Tempo de resposta aceitável para um chatbot, considerando as latências das múltiplas APIs envolvidas.
+
+Confiabilidade: Tratamento básico de erros e comunicação clara sobre indisponibilidades.
+
+Segurança: Proteção das chaves de API e dados do usuário armazenados.
+
+Personalização: O sistema deve adaptar suas sugestões e interações com base nos dados e perfil do usuário.
+
+7. Questões em Aberto e Decisões Pendentes para V1.1
+Escolha da IA: Cliente precisa definir a preferência entre Google Gemini e OpenAI ChatGPT.
+
+Lista de Ligas Principais: Cliente deve fornecer a lista inicial de ligas de futebol a serem cobertas.
+
+Sistema de Créditos:
+
+Definir a quantidade de créditos iniciais/diários para o usuário na V1.1.
+
+Agente de Controle de Perdas:
+
+Definir o número de perdas consecutivas (X) que aciona o alerta.
+
+Conteúdo e Tom da IA: Alinhar o tom de comunicação da IA (mais formal, informal, analítico, etc.) e exemplos de prompts/respostas, especialmente para a análise contextual e perguntas guiadas.
+
+Especificações da Instância N8N e Evolution API: Definir requisitos de hospedagem (VPS ou outro) se o cliente não possuir.
+
+Formato Detalhado das Mensagens: Definir o layout exato das mensagens de menu, análise, alertas, onboarding, etc. (pode ser feito iterativamente).
+
+Prioridade da Notificação de Times Favoritos: Confirmar se entra integralmente na V1.1 ou se uma versão simplificada/MVP é suficiente.
+
+8. Cronograma Preliminar e Marcos (V1.1)
+(Nota: Os prazos são estimativas e podem precisar de revisão com base na complexidade adicionada. A estrutura de fases da V1 é mantida como referência.)
+
+Fase 1: Configuração e Acesso às Plataformas e APIs (Cliente e Desenvolvedor) - [Estimativa: 1-2 dias]
+
+Marco: Todas as plataformas e APIs acessíveis, configuradas e testadas.
+
+Fase 2: Desenvolvimento Fluxo de Onboarding (Avançado) e Menu Principal com Integração Supabase - [Estimativa: 4-5 dias]
+
+Marco: Usuário completa onboarding (banca, meta, prazo, perfil, times), dados salvos, stake calculada, menu principal funcional.
+
+Fase 3: Desenvolvimento Fluxo de Análise de Jogo com IA Contextual, Supabase, Créditos e Retorno - [Estimativa: 4-6 dias]
+
+Marco: Usuário seleciona jogo, crédito é gerenciado, IA fornece análise contextual, pode retornar ao jogo.
+
+Fase 4: Desenvolvimento Agente de Controle de Perdas e Funcionalidades Adicionais (Times Favoritos, Feedback de Aposta) - [Estimativa: 2-3 dias]
+
+Marco: Agente de perdas funcional, feedback de apostas e notificações de times favoritos implementados.
+
+Fase 5: Testes Integrados e Ajustes - [Estimativa: 7-10 dias]
+
+Marco: Fluxos V1.1 testados de ponta a ponta e aprovados.
+
+Fase 6: Entrega e Documentação Básica - [Estimativa: 2 dias]
+
+Marco: Projeto V1.1 entregue com documentação.
+
+9. Critérios de Aceitação (V1.1)
+O usuário consegue completar o fluxo de onboarding (banca, meta, prazo, perfil de risco, times favoritos) via WhatsApp, com dados devidamente persistidos, stake calculada e recuperados do Supabase.
+
+O menu principal é exibido corretamente, as opções são funcionais (incluindo indicação de jogos retornáveis) utilizando a Evolution API.
+
+A lista de jogos das ligas principais definidas é carregada e atualizada corretamente, com aviso de "jogos em tempo real".
+
+O usuário consegue selecionar um jogo, o sistema de créditos é debitado corretamente (na primeira consulta externa), e uma análise contextual da IA escolhida é recebida no WhatsApp, iniciando com overview e pergunta.
+
+O usuário pode retornar a uma análise de jogo em andamento sem consumir novo crédito.
+
+O agente de controle de perdas envia alertas apropriados após um número definido de perdas.
+
+O sistema solicita feedback sobre apostas ao sair de uma análise.
+
+O sistema trata adequadamente casos como "jogo sem estatísticas suficientes" ou "nenhum jogo disponível".
+
+As interações são orquestradas pelo n8n, integrando todas as APIs.
+
+Os fluxos n8n estão organizados.
+
+A estrutura das tabelas no Supabase está funcional e armazena todos os novos campos.
+
+(Opcional, se priorizado) Notificações de times favoritos são enviadas.
+
+10. Próximos Passos para Início do Projeto
+Revisão e Aprovação deste Documento de Escopo do Projeto (Versão 1.1) pelo cliente.
+
+Definição das "Questões em Aberto" listadas na seção 7.
