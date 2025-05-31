@@ -1,0 +1,519 @@
+# ApostaCerta.AI - Blueprint Mestre de Implementação V1.1 (Versão Chat Revisada)
+
+**Data da Versão:** 31 de maio de 2025
+**Versão do Blueprint:** 1.1 (Revisado conforme discussão em chat)
+**Status:** Pronto para implementação e evolução contínua
+
+## 1. PROMPT MESTRE PARA QUALQUER IA (Guia de Implementação ApostaCerta.AI V1.1)
+
+"Olá, IA! Você é o especialista encarregado da implementação e evolução contínua do projeto **apostacerta.AI**, Versão 1.1.
+
+Sua missão é me auxiliar na construção dos fluxos de trabalho no N8N. Este projeto é um chatbot de análise de apostas esportivas via WhatsApp, orquestrado pelo N8N, utilizando Evolution API para comunicação, Supabase como banco de dados (já configurado conforme o schema fornecido em `código postgresql.txt` atualizado) e você (IA Generativa como GPT-4/Claude/Gemini) para lógica de negócios e análise contextual.
+
+**Documentos de Referência Primária (Internalize-os):**
+
+1.  **`Scopo detalhado.txt` (V1.1):** Define O QUÊ o sistema deve fazer, funcionalidades, regras de negócio e a experiência do usuário. É a fonte da verdade para os requisitos. (Fornecido pelo usuário)
+2.  **`código postgresql.txt` (ATUALIZADO):** Contém o schema COMPLETO e ATUALIZADO do banco de dados Supabase, incluindo as novas colunas na tabela `users`. Todas os nomes de tabelas e colunas para interações com o banco DEVEM seguir este schema. (Fornecido pelo usuário e atualizado conforme discussão)
+3.  **Este Documento (Blueprint Mestre de Implementação V1.1 - Versão Chat Revisada):** Descreve COMO implementar a arquitetura, os agentes, as "tools" e os fluxos N8N. É o seu guia principal para a implementação.
+
+**Seu Entendimento é Crucial:**
+Confirme que você compreendeu a visão geral do projeto, a arquitetura multi-agentes proposta, as tecnologias envolvidas, os princípios de design dos agentes (uso de "tools" pela IA, outputs simplificados dos agentes, geração de sumário dedicada) e a importância dos documentos de referência. Você deve SEMPRE consultar estes documentos para manter o contexto e fornecer a melhor assistência.
+
+**Estado Atual do Projeto:**
+O banco de dados Supabase está implantado com o schema ATUALIZADO de `código postgresql.txt`. A Evolution API está configurada e pronta para integração. O `Scopo detalhado.txt` define as funcionalidades da V1.1.
+
+**Meu Foco Imediato é:**
+Estou trabalhando na **[NOME/NÚMERO DA FASE ATUAL DO PLANO DE IMPLEMENTAÇÃO]** e, mais especificamente, na tarefa de **[DESCRIÇÃO DA TAREFA ESPECÍFICA EM N8N]**.
+
+**Como Você Vai me Ajudar Agora:**
+Com base no meu foco imediato, e seguindo os princípios deste Blueprint revisado, quero que você me ajude a:
+    a. Esboçar a sequência de nós N8N para esta tarefa específica.
+    b. Detalhar a configuração dos nós chave (especialmente nós de IA, LangChain Agent, Tools N8N, Supabase/PostgreSQL e HTTP Request).
+    c. Formular os System Messages para os nós de IA dos agentes especializados (ex: Onboarding), garantindo que:
+        * Eles instruam a IA a focar na conversa e a decidir usar "Tools" nomeando-as.
+        * Eles instruam a IA a fornecer os argumentos necessários para as tools, conforme as descrições das tools.
+        * A IA seja instruída a retornar APENAS a `response_text` para o usuário.
+    d. Sugerir como tratar condições, lógicas de ramificação e erros nesse fluxo específico.
+    e. Garantir que o input para o sub-fluxo `persistencia-e-log-pos-agente.n8n` (que agora inclui uma AI Summarizer) seja corretamente preparado.
+
+Vamos começar com a tarefa **[DESCRIÇÃO DA TAREFA ESPECÍFICA EM N8N]** da **[NOME/NÚMERO DA FASE ATUAL]**. Apresente suas sugestões para o fluxo N8N e os System Messages/prompts relevantes."
+
+---
+
+## 2. DOCUMENTOS DE REFERÊNCIA PRIMÁRIA
+
+1.  **`Scopo detalhado.txt` (Versão 1.1):** Fornecido pelo usuário. Define os requisitos funcionais, regras de negócio e a experiência do usuário.
+2.  **`código postgresql.txt` (ATUALIZADO):** Fornecido pelo usuário e atualizado em discussão. Contém o schema completo e atualizado do banco de dados Supabase, incluindo as colunas `stake_sugerida_percentual`, `stake_sugerida_valor`, e `total_apostas_diarias_recomendadas` na tabela `users`. É a fonte da verdade para todas as interações com o banco.
+3.  **`Blueprint Mestre de Implementação V1.1` (Este Documento - Versão Chat Revisada):** Guia central para a arquitetura, design de agentes, "tools" e implementação dos fluxos N8N.
+
+---
+
+## 3. VISÃO GERAL DO PROJETO
+
+* **Conceito Central:** Sistema multi-agentes N8N que usa Advanced AI com prompts inteligentes como lógica de negócio, substituindo IF/Switch por decisões contextuais da IA, para um chatbot de análise de apostas esportivas via WhatsApp.
+* **Objetivo (V1.1):** Automatizar e enriquecer a experiência de apostadores esportivos, fornecendo análises estatísticas e recomendações baseadas em IA diretamente no WhatsApp. Auxiliar na tomada de decisões mais informadas, no gerenciamento de banca personalizado (com base em perfis de risco e metas), na disciplina emocional (com alertas de perdas), através de uma interface conversacional intuitiva, eficiente e contextualizada.
+* **Fluxo Principal do Usuário (Conforme V1.1):**
+    * **Onboarding:** Coleta de dados essenciais (`bank_value`, `daily_goal_value`, `goal_timeframe_days`, `investor_profile`, `favorite_teams`). Cálculo e armazenamento de `stake_sugerida_percentual`, `stake_sugerida_valor`, `total_apostas_diarias_recomendadas` e `onboarding_completed_at`.
+    * **Menu Principal:** Apresentação de jogos disponíveis, opções de perfil, ajuda, etc.
+    * **Análise de Jogo:** Consumo de crédito (para nova análise), busca de dados estatísticos, geração de análise pela IA, interação contextual sobre o jogo.
+    * **Retorno Gratuito:** Acesso a análises de jogos já pagos sem custo adicional enquanto relevantes.
+    * **Controle de Perdas:** Alertas proativos após perdas consecutivas.
+    * **Feedback de Apostas:** Coleta de feedback do usuário sobre o resultado de suas apostas em jogos analisados.
+
+---
+
+## 4. ARQUITETURA TÉCNICA
+
+* **Stack Tecnológico:**
+    * **Orquestrador:** N8N (workflows visuais)
+    * **Comunicação:** Evolution API (WhatsApp)
+    * **Banco de Dados:** Supabase (PostgreSQL - schema no `código postgresql.txt` ATUALIZADO)
+    * **Inteligência Artificial:** Google Gemini (via `@n8n/n8n-nodes-langchain.lmChatGoogleGemini` ou chamadas HTTP diretas, se necessário)
+    * **Dados Esportivos:** Football API-Sports (API Key e plano sob responsabilidade do cliente)
+    * **Autenticação (Usuário no DB):** Supabase Auth (`user_id` é UUID, `DEFAULT auth.uid()` com trigger de fallback para `gen_random_uuid()` para chamadas de serviço N8N).
+* **Arquitetura Multi-Agentes (N8N):**
+    * `Webhook (Evolution API)` → `00-tratamento-inicial-mensagem.n8n` (seu fluxo atual de tratamento de mensagem e debounce) → `01-hub-central.n8n` (Roteador AI) → `Execute Workflow (Agente Especializado .n8n)` → `Retorno do Agente Especializado (response_text)` → `Bloco de Envio de Mensagem ao Usuário (no 01-hub-central.n8n)` → `Execute Workflow (subfluxo_persistencia_e_log_pos_agente.n8n)`.
+
+---
+
+## 5. ESTRUTURA DO BANCO DE DADOS (REFERÊNCIA) - ATUALIZADO
+
+A fonte da verdade para a estrutura do banco de dados é o arquivo **`código postgresql.txt` (ATUALIZADO)**. Ele inclui as novas colunas na tabela `users`. Todas as operações de banco de dados devem seguir este schema.
+
+**Tabelas Principais para Interação dos Agentes:**
+
+* **`users`**: Armazena dados do perfil do usuário, configurações de apostas, créditos, estado do onboarding, etc.
+    * Campos chave (incluindo os adicionados pela V1.1): `user_id`, `whatsapp_id`, `push_name`, `bank_value`, `daily_goal_value`, `goal_timeframe_days`, `investor_profile`, `favorite_teams`, `remaining_credits`, `credits_last_reset_at`, `recent_loss_signals_count`, `active_analysis_game_id`, `active_analysis_details`, `current_subscription_id`, `onboarding_completed_at`, `last_favorite_team_notification_at`, `stake_sugerida_percentual`, `stake_sugerida_valor`, `total_apostas_diarias_recomendadas`, `created_at`, `updated_at`.
+* **`interaction_log`**: Registra cada interação significativa.
+    * Campo `details (JSONB)`: Armazenará o `current_interaction_summary` gerado pela AI Summarizer, no formato `{"summary": "texto do sumário"}`.
+* Outras tabelas (`user_bets`, `leagues`, `plans`, `user_subscriptions`, `knowledge_base`, `app_settings`) permanecem conforme definidas no `código postgresql.txt` atualizado.
+
+---
+
+## 6. PRINCÍPIOS DE DESIGN DOS AGENTES E FLUXOS N8N - ATUALIZADO
+
+Esta seção define como os agentes N8N devem ser construídos e como eles interagem, refletindo nossas últimas decisões.
+
+### 6.1. Agentes como Orquestradores de "Tools"
+
+* **IA Principal do Agente (LangChain Agent):** O nó `@n8n/n8n-nodes-langchain.agent` de cada agente especializado (ex: "Agente Onboarding") é responsável pela lógica da conversa, entendimento da intenção do usuário e decisão de quais "Tools" N8N chamar. A IA indicará o nome da tool e os argumentos necessários, guiada pelas descrições das tools configuradas no nó LangChain Agent.
+* **"Tools":** São sub-fluxos N8N reutilizáveis (chamados via `@n8n/n8n-nodes-langchain.toolWorkflow`) ou "Code Tools" (JavaScript direto na configuração da tool) que executam tarefas atômicas (ex: atualizar Supabase, chamar API externa, realizar cálculos).
+
+### 6.2. Output Padronizado de um Agente Especializado (ex: Onboarding, Menu) - ATUALIZADO
+
+Cada agente especializado, ao final de seu processamento para um turno de interação (após potencialmente chamar várias tools), produzirá para o workflow `01-hub-central.n8n` um output contendo:
+
+* **`response_text` (String):**
+    * A mensagem exata a ser enviada ao usuário via WhatsApp. Esta é a principal e geralmente única saída direta da IA do agente especializado.
+* **(Opcional) `output_para_proxima_tool_ou_log` (Object | String):**
+    * Se o agente acabou de executar uma tool interna (como `Tool_CalculateStake`) e precisa que esses dados específicos (o objeto de resultado da tool) sejam usados imediatamente pela próxima tool na sequência definida no System Message (ex: `Tool_UpdateUserProfile`), ele pode passar esse resultado. Alternativamente, o sistema N8N pode gerenciar a passagem desses resultados de tool para a próxima chamada de tool com base nas instruções do System Message do agente.
+
+### 6.3. Contexto para os Agentes (Inputs Essenciais) - ATUALIZADO
+
+Cada agente principal (Roteador e Especializados) deve receber um conjunto padronizado de inputs, tipicamente preparados pelo nó `Preparar dados roteador` no `01-hub-central.n8n` ou pelo nó "Start" do workflow do agente especializado:
+
+* **`user_data` (Object):** Dados completos e mais recentes do usuário, carregados da tabela `users`.
+* **`final_user_message` (String):** A mensagem textual exata enviada pelo usuário no turno atual (anteriormente referida como `incoming_message`).
+* **`short_term_context_history` (Array[String]):** Um array contendo os `current_interaction_summary` das N interações mais recentes (gerados pela "AI Summarizer").
+* **`AGORA É:` (String):** O timestamp atual no formato ISO, para referência (ex: para `onboarding_completed_at`).
+* **(Implicitamente)** Acesso à Memória da Conversa via nó "Postgres Chat Memory" configurado no agente LangChain.
+
+### 6.4. Sub-fluxo N8N Padrão: `persistencia-e-log-pos-agente.n8n` (Responsabilidades ATUALIZADAS)
+
+Este workflow N8N reutilizável é chamado pelo `01-hub-central.n8n` APÓS a mensagem do agente especializado ter sido enviada ao usuário.
+
+* **Inputs Esperados:**
+    * `user_id` (String/UUID)
+    * `final_user_message` (String - a mensagem original do usuário para o turno)
+    * `agent_response_text` (String - a resposta que o agente especializado gerou e foi enviada ao usuário)
+    * `event_type` (String, opcional, default: "interaction\_processed")
+* **Responsabilidades ATUALIZADAS:**
+    1.  **Chamar "AI Summarizer":** Um nó de IA (ex: Google Gemini) dentro deste sub-fluxo recebe `final_user_message` e `agent_response_text`. Ele usa um prompt específico para gerar uma string `current_interaction_summary` concisa.
+    2.  **Salvar Log de Interação:** Usa um nó Supabase/PostgreSQL para inserir um novo registro na tabela `interaction_log` com `user_id`, `timestamp (NOW())`, `event_type` e o `current_interaction_summary` gerado (armazenado no campo `details` como `{"summary": "texto do sumário"}`).
+* Este sub-fluxo não processa mais o objeto `database_updates` diretamente dos agentes especializados, pois as atualizações de banco são feitas por "Tools" chamadas pelos próprios agentes.
+
+### 6.5. Fluxos de Dados Padronizados (Geral) - ATUALIZADO
+
+* O output dos Agentes Especializados para o `01-hub-central.n8n` é agora primariamente a `response_text`.
+
+---
+
+## 7. SISTEMA DE ROTEAMENTO INTELIGENTE (HUB CENTRAL) - ATUALIZADO
+
+O workflow `01-hub-central.n8n` é o ponto de entrada após o `00-tratamento-inicial-mensagem.n8n`.
+
+**Responsabilidades e Fluxo ATUALIZADOS:**
+
+1.  Recebe os dados processados do `00-tratamento-inicial-mensagem.n8n` (incluindo `final_user_message`, `whatsapp_id`, `push_name`).
+2.  Executa `Tool:FetchOrCreateUser` (sub-fluxo N8N) -> retorna `user_data`, `is_new_user`.
+3.  Executa `Tool:FetchInteractionHistory` (sub-fluxo N8N) -> retorna `short_term_context_history`.
+4.  Nó "Preparar dados roteador" (Set): Agrupa `user_data`, `is_new_user`, `short_term_context_history`, `final_user_message`, e `AGORA É: {{ $now.toISO() }}`.
+5.  Nó "AI Agent Router" (LangChain Agent + Gemini):
+    * **Inputs:** Output do "Preparar dados roteador".
+    * **System Message (Prompt Core do Roteador):** (Utilizar o System Message completo e corrigido que foi fornecido na conversa, que usa `user_data.onboarding_completed_at` para a descrição do status e `is_new_user` na lógica de decisão, e espera apenas o nome do agente como saída).
+    * **Output:** Nome do agente especializado em minúsculas (ex: "onboarding").
+6.  Nó "Switch" (DirecionarParaAgente): Usa a saída do Roteador AI para direcionar o fluxo.
+7.  Para cada ramificação do Switch (ex: ramificação "onboarding"):
+    a.  Nó "Execute Workflow": Chama o workflow do agente especializado (ex: `onboarding.n8n`), passando os dados preparados (output do "Preparar dados roteador").
+    b.  O agente especializado (`onboarding.n8n`) executa sua lógica, chama suas tools internas, e retorna APENAS a `response_text` para o usuário.
+    c.  Nó(s) de Envio de Mensagem (seu bloco Code5, Reposta da orquestra, Switch1 para tipo de mídia, SEND TEXT/IMAGE/VIDEO, Limit, Redis6): Pega a `response_text` retornada pelo agente especializado e envia para o usuário via Evolution API.
+    d.  Nó "Execute Workflow": Chama o sub-fluxo `persistencia-e-log-pos-agente.n8n`, passando `user_id` (de `user_data`), `final_user_message` (original do turno), e `agent_response_text` (que acabou de ser enviada).
+
+---
+
+## 8. AGENTES ESPECIALIZADOS - ATUALIZADO
+
+Cada agente especializado (Onboarding, Menu, Análise Nova, Análise Ativa, Utilitários, Controle de Perdas) é um workflow N8N separado, implementado usando um nó `@n8n/n8n-nodes-langchain.agent` conectado a um LLM (ex: Google Gemini) e ao "Postgres Chat Memory".
+
+**Princípio Chave ATUALIZADO para Todos os Agentes Especializados:**
+
+* **Entradas:** Recebem o contexto completo (`user_data`, `final_user_message`, `short_term_context_history`, `AGORA É:`).
+* **Lógica Interna:** O System Message de cada agente o instrui a conduzir a conversa, validar dados e, quando necessário, decidir usar "Tools" configuradas. Ao decidir usar uma tool, a IA deve fornecer os argumentos necessários para essa tool, conforme as descrições dos parâmetros da tool (configuradas no nó `@n8n/n8n-nodes-langchain.toolWorkflow` ou "Code Tool").
+* **Saída Principal para o `01-hub-central.n8n`:** APENAS a `response_text` (a mensagem a ser enviada ao usuário). Eles não geram mais `current_interaction_summary` nem `database_updates` diretamente em sua saída.
+
+### 8.1. Agente Onboarding (`onboarding.n8n`) - ATUALIZADO
+
+* **Função:** Guiar o usuário pela coleta de dados (`bank_value`, `daily_goal_value`, etc.), chamar tools para salvar esses dados e para calcular a stake.
+* **System Message (Prompt Core):** (Utilizar o System Message completo e atualizado que foi fornecido na conversa, que instrui a IA sobre as ETAPAS DO ONBOARDING, como validar dados, como decidir usar `Tool_UpdateUserProfile` especificando `field_key_to_update` e `new_field_value`, como usar `Tool_CalculateStake`, e como, na ETAPA 7b, fazer múltiplas chamadas à `Tool_UpdateUserProfile` para salvar os 3 resultados do cálculo de stake + `onboarding_completed_at`).
+* **Tools Utilizadas (configuradas no nó LangChain Agent "onboarding"):**
+    * `Tool_UpdateUserProfile` (implementada como um `@n8n/n8n-nodes-langchain.toolWorkflow` que chama o sub-fluxo `subfluxo_tool_UpdateUserProfile.n8n`)
+    * `Tool_CalculateStake` (implementada como um "Code Tool" JavaScript diretamente na configuração da tool no agente "onboarding")
+* **Output para `01-hub-central.n8n`:** Apenas `response_text`.
+
+*(As seções para os outros agentes como `menu.n8n`, `analise-nova.n8n`, etc., precisariam ser detalhadas seguindo este mesmo padrão de design, cada um com seu System Message específico, lógica de conversa e conjunto de tools que podem chamar).*
+
+---
+
+## 9. CATÁLOGO DE "TOOLS" (Sub-Fluxos N8N Reutilizáveis ou Nós Especializados) - ATUALIZADO
+
+Estas são as "ferramentas" que os Agentes LangChain podem chamar.
+
+* **`Tool:FetchOrCreateUser`** (Sub-fluxo N8N chamado pelo `01-hub-central.n8n` - Design permanece o mesmo).
+* **`Tool:FetchInteractionHistory`** (Sub-fluxo N8N chamado pelo `01-hub-central.n8n` - Design permanece o mesmo, mas o `SELECT` agora é `details->>'summary' AS interaction_summary`).
+* **`Tool:SendMessageToUser`** (Implementado como um bloco de nós HTTP Request no `01-hub-central.n8n`).
+* **`Tool_UpdateUserProfile`**:
+    * **Implementação:** Nó `@n8n/n8n-nodes-langchain.toolWorkflow` configurado no agente especializado (ex: Onboarding). Este nó aponta para um sub-fluxo N8N (`subfluxo_tool_UpdateUserProfile.n8n`).
+    * **Sub-fluxo `subfluxo_tool_UpdateUserProfile.n8n`**:
+        * **Inputs** (recebidos do nó LangChain tool): `user_id`, `field_key_to_update` (string), `new_field_value` (any).
+        * **Lógica Interna:** Usa um nó "Code" para preparar o objeto de atualização e um nó PostgreSQL com query dinâmica parametrizada (sem ponto e vírgula no final) para executar o `UPDATE users SET "[field_key_to_update]" = $1, "updated_at" = NOW() WHERE "user_id" = $2 RETURNING *;`.
+        * **Output** (do sub-fluxo para o LangChain Agent/LLM): String de confirmação (ex: `{ "output": "Campo [field_key_to_update] atualizado com sucesso." }`).
+* **`Tool_CalculateStake`**:
+    * **Implementação:** Diretamente como um "Code Tool" (JavaScript) dentro da configuração da tool no nó LangChain Agent (ex: no agente Onboarding).
+    * **Inputs** (que a IA fornece para a tool, guiada pela descrição da tool): `bank_value` (number), `investor_profile` (string).
+    * **Lógica Interna (JavaScript):** Código que calcula `stake_sugerida_percentual`, `stake_sugerida_valor`, `total_apostas_diarias_recomendadas`.
+    * **Output** (do código JavaScript para o LangChain Agent/LLM): Uma string JSON contendo o objeto com os resultados. Ex: `JSON.stringify({stake_sugerida_percentual: 0.05, stake_sugerida_valor: 50, total_apostas_diarias_recomendadas: 3})`.
+* **Nota Importante Pós-Tool (Tratamento do Output no Agente Onboarding):** O System Message do Agente Onboarding (ETAPA 7b) instrui a IA que, após a `Tool_CalculateStake` ser executada, o sistema N8N disponibilizará os resultados (`stake_sugerida_percentual`, `stake_sugerida_valor`, `total_apostas_diarias_recomendadas`) no contexto para ela usar nas chamadas subsequentes à `Tool_UpdateUserProfile`. Isso implica que, no workflow `onboarding.n8n`, após o nó da `Tool_CalculateStake` retornar a string JSON, pode ser necessário um nó "Code" ou "Set" para fazer `JSON.parse()` nessa string e transformar os resultados em campos acessíveis antes que a IA prossiga para as próximas decisões de chamar `Tool_UpdateUserProfile`. Alternativamente, a IA pode ser instruída a parsear a string JSON em seu próprio "pensamento" se o modelo for capaz.
+
+*(O sub-fluxo `persistencia-e-log-pos-agente.n8n` agora tem uma função diferente, como descrito na Seção 6.4, e não é uma "tool" chamada pelos agentes especializados para persistir dados, mas sim um passo final no Hub Central para logar a interação completa).*
+
+---
+
+## 10. SISTEMA DE CRÉDITOS
+
+* **Consumo:** 1 crédito por NOVA análise de jogo (quando `Tool:GetFootballGameStatistics` ou `Tool:GenerateSportAnalysisAI` é chamada pela primeira vez para um `fixture_id` específico para aquele usuário, no dia ou período relevante).
+* **Retorno Gratuito:** Análise ativa ou retorno a um jogo já pago (identificado por `Tool:CheckRecentlyAnalyzedGames`) não consome crédito adicional.
+* **Reset/Recarga:** Créditos podem ser resetados diariamente (via `reset-credits.n8n` agendado) ou atribuídos conforme planos/regras de negócio (ex: X créditos no onboarding). Tabela `users.credits_last_reset_at` pode controlar o reset diário.
+* **Controle:** `Tool:ConsumeCredit` é chamada pelo Agente "Análise Nova". O Agente verifica `user_data.remaining_credits` antes.
+
+---
+
+## 11. ESTRUTURA DOS WORKFLOWS N8N (Organização de Arquivos)
+
+
+workflows/
+├── 00-tratamento-inicial-mensagem.n8n # Seu fluxo atual de webhook, debounce, etc.
+├── 01-hub-central.n8n                 # Roteador AI principal
+├── agentes/
+│   ├── onboarding.n8n
+│   ├── menu.n8n
+│   ├── analise-nova.n8n
+│   ├── analise-ativa.n8n
+│   ├── utilitarios.n8n
+│   └── controle-perdas.n8n
+├── tools/                             # Sub-fluxos N8N que implementam a lógica das Tools
+│   ├── subfluxo_tool_UpdateUserProfile.n8n
+│   ├── subfluxo_tool_FetchGameList.n8n   # (Exemplo, se GetFootballGameList for um sub-fluxo)
+│   └── subfluxo_tool_FetchGameStats.n8n  # (Exemplo)
+│   # Tool_CalculateStake é um "Code Tool", não um sub-fluxo aqui.
+├── subfluxos_comuns/
+│   └── subfluxo_persistencia_e_log_pos_agente.n8n # ATUALIZADO
+└── scheduled/
+└── reset-credits.n8n
+
+
+---
+
+## 12. CONFIGURAÇÃO ADVANCED AI NODES / LANGCHAIN AGENT NODES
+
+* **Provider:** google-gemini, openai, anthropic.
+* **Model:** Especificar o modelo (ex: gemini-pro, gpt-4-turbo, claude-3-opus).
+* **Temperature:**
+    * Para Roteamento e decisões lógicas: Baixa (ex: 0.1 - 0.3).
+    * Para Geração de Análise Esportiva e Respostas Criativas: Moderada (ex: 0.5 - 0.7).
+* **Max Tokens:** Ajustar conforme a complexidade da tarefa e o output esperado.
+* **Response Format:** `json_object` quando a IA do agente precisa retornar a estrutura padronizada (`response_text`, `database_updates`, `current_interaction_summary`). `text` para respostas mais diretas dentro de algumas tools.
+* **Tools (para LangChain Agent Nodes):** Configurar as "Tools" N8N ou "Code Tools" que o agente pode chamar.
+    * **Nome da Tool:** Um nome descritivo para a IA usar.
+    * **Descrição da Tool:** Uma descrição clara para a IA entender o que a tool faz e quais argumentos ela espera. Esta descrição é crucial para a IA decidir usar a tool corretamente.
+    * **ID do Workflow (para `@n8n/n8n-nodes-langchain.toolWorkflow`):** O ID do workflow N8N que implementa a tool.
+    * **Código JavaScript (para "Code Tools"):** O código que executa a lógica da tool.
+    * **Mapeamento de Inputs/Outputs:** Garantir que os argumentos que a IA fornece são corretamente mapeados para os inputs do workflow/código da tool, e que o output da tool é retornado de forma que a IA possa utilizá-lo.
+
+---
+
+## 13. PROMPTS ESPECIALIZADOS (Exemplos) - ATUALIZADO
+
+* **Prompt para `Tool:GenerateSportAnalysisAI`**
+    ```
+    Você é um analista esportivo expert do apostacerta.AI. Sua tarefa é fornecer uma análise detalhada e imparcial do jogo de futebol solicitado, ou responder a uma pergunta específica sobre ele, considerando o perfil do usuário.
+
+    JOGO PARA ANÁLISE:
+    {{JSON.stringify(game_data_from_api_sports, null, 2)}}
+    /* game_data_from_api_sports inclui:
+    - Informações da partida (times, liga, data, placar atual se ao vivo)
+    - Estatísticas H2H recentes
+    - Forma recente das equipes (últimos 5-10 jogos, resultados, gols)
+    - Estatísticas detalhadas da partida (se disponíveis/ao vivo: posse, chutes, cantos, cartões, etc.)
+    - Desfalques importantes (se disponíveis)
+    */
+
+    PERFIL DO USUÁRIO:
+    - Banca Atual: R$ {{user_data.bank_value}}
+    - Perfil de Risco: {{user_data.investor_profile}} (Conservador, Equilibrado, Agressivo)
+    - Stake Sugerida (calculada no onboarding): {{user_data.stake_sugerida_percentual}}% (aproximadamente R$ {{user_data.stake_sugerida_valor}})
+    - Times Favoritos: {{JSON.stringify(user_data.favorite_teams)}}
+
+    HISTÓRICO RECENTE DA CONVERSA SOBRE ESTE JOGO (se houver):
+    {{#each short_term_context_history_for_this_game}}
+    - {{this}}
+    {{/each}}
+
+    FOCO DA ANÁLISE / PERGUNTA DO USUÁRIO (se aplicável):
+    "{{analysis_focus_question || 'Forneça uma análise geral e identifique uma oportunidade de aposta.'}}"
+
+    INSTRUÇÕES PARA A ANÁLISE:
+    1.  **Contexto do Confronto (2-3 linhas):** Importância do jogo, rivalidade, situação na tabela.
+    2.  **Análise das Equipes:**
+        * Desempenho recente, pontos fortes e fracos.
+        * Como as estatísticas (posse, chutes, xG se disponível) refletem seu estilo de jogo.
+        * Impacto de desfalques.
+    3.  **Estatísticas Chave Relevantes:** Destaque os dados mais importantes do `game_data_from_api_sports` que suportam sua análise.
+    4.  **Identificação de Oportunidade (se o foco for análise geral):**
+        * Sugira um mercado de aposta (ex: Resultado Final, Ambas Marcam, Total de Gols Over/Under, Handicap Asiático, Marcadores).
+        * Justifique a escolha com base na análise e estatísticas.
+        * Indique uma faixa de odd que consideraria de valor (ex: "Odd mínima sugerida: 1.85"). *Não prometa ganhos.*
+    5.  **Recomendação de Stake (se aplicável e uma oportunidade for identificada):**
+        * Sugira um percentual da stake padrão do usuário (ex: 0.5x, 1x, 1.5x da stake calculada no onboarding), justificando com base no nível de confiança e no perfil de risco.
+        * Ex: "Para seu perfil {{user_data.investor_profile}}, uma stake de {{0.5 * user_data.stake_sugerida_percentual}}% da sua banca (R$ {{0.5 * user_data.stake_sugerida_valor}}) seria prudente para esta aposta."
+    6.  **Resposta à Pergunta Específica (se `analysis_focus_question` existir):** Responda diretamente à pergunta do usuário usando os dados disponíveis.
+    7.  **Alerta de Gestão de Banca:** SEMPRE inclua uma frase lembrando da importância do gerenciamento de banca e de apostar com responsabilidade.
+    8.  **Pergunta Engajante (Opcional, se for análise geral):** Termine com uma pergunta para incentivar o usuário a explorar mais algum aspecto (ex: "Gostaria de analisar as estatísticas de escanteios ou o desempenho do artilheiro da equipe X?").
+
+    TONE E ESTILO:
+    - Objetivo, analítico e baseado em dados.
+    - Imparcial, mesmo que um dos times seja favorito do usuário.
+    - Linguagem clara e acessível para apostadores.
+    - Evite jargões excessivos sem explicação.
+    - NUNCA garanta resultados ou lucros. Enfatize que são análises e sugestões.
+
+    FORMATO DA RESPOSTA (TEXTO):
+    Produza um texto corrido e bem formatado para WhatsApp. Use emojis com moderação para melhorar a legibilidade.
+    ```
+* **NOVO: Prompt para AI Summarizer (dentro do `subfluxo_persistencia_e_log_pos_agente.n8n`):**
+    ```
+    Dada a seguinte interação entre um usuário e um bot:
+    MENSAGEM DO USUÁRIO: "{{ $json.final_user_message }}"
+    RESPOSTA DO BOT: "{{ $json.agent_response_text }}"
+
+    Crie um resumo conciso desta interação em uma única frase curta para fins de log. O resumo deve capturar a ação principal ou a informação chave trocada. Não inclua saudações ou frases introdutórias no resumo, apenas o fato principal. O resumo não deve exceder 150 caracteres.
+
+    Exemplos de resumo:
+    - Usuário perguntou sobre jogos, bot apresentou o menu.
+    - Usuário informou valor da banca R$1000, bot confirmou e pediu meta de lucro.
+    - Bot iniciou análise do jogo X vs Y.
+    - Usuário solicitou ajuda sobre comandos.
+    ```
+
+---
+
+## 14. SISTEMA DE MONITORAMENTO
+
+Logs Essenciais (Tabela `interaction_log`):
+
+* `user_id`, `timestamp`, `event_type` (ex: `onboarding_step`, `menu_displayed`, `analysis_requested`, `analysis_generated`, `credit_consumed`, `error_api_football`, `user_message_unclear`), `details` (contendo o `current_interaction_summary` e outros metadados relevantes da interação).
+
+Métricas Importantes (a serem extraídas dos logs):
+
+* Tempo de resposta por agente/tool.
+* Taxa de conclusão do onboarding.
+* Uso de créditos por usuário/dia.
+* Jogos/Ligas mais analisados.
+* Taxa de "retorno gratuito" a análises.
+* Engajamento com o Agente de Controle de Perdas.
+* Pontos de abandono no funil de interação.
+
+---
+
+## 15. PLANO DE IMPLEMENTAÇÃO (Fases Sugeridas) - NOTA SOBRE ATUALIZAÇÃO
+*(A estrutura de Fases do seu blueprint original é uma boa base. As principais mudanças serão nas tarefas internas de cada fase para refletir a nova arquitetura de como os Agentes LangChain chamam Tools e como o logging/summarizing acontece. Por exemplo, ao implementar os agentes especializados, o foco será em definir seu System Message, as Tools que ele pode chamar (e os sub-fluxos/códigos dessas tools), e sua lógica de conversação, sabendo que ele só precisa retornar `response_text`.)*
+
+* **Fase 0:** Setup e Fundação (Parcialmente concluído por você)
+    * [X] Configurar Supabase (schema de `código postgresql.txt` aplicado).
+    * [X] Configurar Evolution API (pronta para integração).
+    * [ ] Configurar N8N com nós Advanced AI e acesso às APIs.
+    * [ ] Configurar Football API (chave e plano).
+    * [ ] Criar workflow `00-webhook-evolution.n8n`. (Nota: no seu blueprint atualizado, o nome é `00-tratamento-inicial-mensagem.n8n`)
+    * [ ] Implementar `Tool:FetchOrCreateUser` e `Tool:FetchInteractionHistory`.
+* **Fase 1:** Hub Central + Roteador
+    * [ ] Criar workflow `01-hub-central.n8n`.
+    * [ ] Implementar Advanced AI Roteador (Prompt Core e lógica de decisão).
+    * [ ] Implementar sub-fluxo `persistencia-e-log-pos-agente.n8n`.
+    * [ ] Implementar `Tool:SendMessageToUser`.
+    * [ ] Testar roteamento básico com dados mock para `user_data` e `short_term_context_history`.
+* **Fase 2:** Agente Onboarding
+    * [ ] Criar workflow `agentes/onboarding.n8n`.
+    * [ ] Implementar o "Prompt Core" da IA do Agente Onboarding.
+    * [ ] Desenvolver lógica N8N para gerenciar as etapas do onboarding (coleta sequencial, validação).
+    * [ ] Integrar com `Tool_UpdateUserProfile` (via sub-fluxo de persistência ou tool workflow).
+    * [ ] Implementar `Tool_CalculateStake`.
+    * [ ] Testes ponta a ponta do onboarding completo.
+* **Fase 3:** Agente Menu e Listagem de Jogos
+    * [ ] Criar workflow `agentes/menu.n8n`.
+    * [ ] Implementar `Tool:GetFootballGameList` (ou `subfluxo_tool_FetchGameList.n8n`) e `Tool:CheckRecentlyAnalyzedGames`.
+    * [ ] Implementar o "Prompt Core" da IA do Agente Menu para formatação da lista de jogos e opções.
+    * [ ] Testar apresentação do menu, destaque de favoritos e jogos retornáveis.
+* **Fase 4:** Agentes de Análise (Nova e Ativa) e Sistema de Créditos
+    * [ ] Criar workflows `agentes/analise-nova.n8n` e `agentes/analise-ativa.n8n`.
+    * [ ] Implementar `Tool:ConsumeCredit`.
+    * [ ] Implementar `Tool:GetFootballGameStatistics` (ou `subfluxo_tool_FetchGameStats.n8n`).
+    * [ ] Implementar `Tool:GenerateSportAnalysisAI` (com o prompt especializado).
+    * [ ] Desenvolver "Prompt Core" e lógica N8N para ambos os agentes de análise.
+    * [ ] Gerenciar estado de `active_analysis_game_id` e `active_analysis_details`.
+    * [ ] Testar fluxo completo de análise nova (com consumo de crédito) e análise ativa (gratuita, contextual).
+* **Fase 5:** Agente Controle de Perdas e Utilitários
+    * [ ] Criar workflows `agentes/controle-perdas.n8n` e `agentes/utilitarios.n8n`.
+    * [ ] Implementar lógica de gatilho para controle de perdas.
+    * [ ] Desenvolver "Prompt Core" e lógica N8N para estes agentes.
+    * [ ] Testar alertas de perda e funcionalidades de perfil/ajuda.
+* **Fase 6:** Testes Integrados, Refinamento de Prompts e Otimização
+    * [ ] Testar todos os fluxos de ponta a ponta com múltiplos cenários.
+    * [ ] Ajustar prompts de IA com base nos resultados e qualidade das respostas.
+    * [ ] Otimizar performance dos workflows N8N.
+    * [ ] Revisar tratamento de erros e mensagens ao usuário.
+* **Fase 7:** Documentação Final e Preparação para Deploy
+    * [ ] Finalizar documentação interna dos workflows N8N.
+    * [ ] Preparar variáveis de ambiente para produção.
+
+---
+
+## 16. CHECKLIST DE VALIDAÇÃO (V1.1)
+
+Funcionalidades Core:
+
+* [ ] Usuário completa onboarding (`bank_value`, `daily_goal_value`, `goal_timeframe_days`, `investor_profile`, `favorite_teams`), dados salvos, `stake_sugerida_percentual`, `stake_sugerida_valor`, `total_apostas_diarias_recomendadas` calculados e `onboarding_completed_at` preenchido.
+* [ ] Roteador IA (`01-hub-central.n8n`) direciona corretamente para cada agente especializado com base no contexto (`user_data.onboarding_completed_at`, `is_new_user`, `final_user_message`, `short_term_context_history`).
+* [ ] `short_term_context_history` (sumários da AI Summarizer) é corretamente carregado e utilizado pelos agentes.
+* [ ] `current_interaction_summary` é gerado pela AI Summarizer no `persistencia-e-log-pos-agente.n8n` de forma concisa e útil, e salvo em `interaction_log.details`.
+* [ ] Sub-fluxo `persistencia-e-log-pos-agente.n8n` funciona corretamente (chama AI Summarizer, salva log).
+* [ ] Agentes especializados retornam apenas `response_text` para o `01-hub-central.n8n`.
+* [ ] `Tool_UpdateUserProfile` e `Tool_CalculateStake` (e outras tools) são chamadas corretamente pelos agentes LangChain com os argumentos necessários e seus outputs são processados conforme o System Message do agente.
+* [ ] Menu mostra jogos (Football API), destaca favoritos e retornos gratuitos (🔁).
+* [ ] Nova análise consome 1 crédito, busca estatísticas, IA gera análise e é enviada.
+* [ ] Retorno à análise ativa é gratuito e contextual.
+* [ ] Agente Controle de Perdas alerta após X perdas.
+* [ ] Agente Utilitários permite ver/alterar perfil e obter ajuda.
+* [ ] Dados persistem corretamente no Supabase conforme `código postgresql.txt` (ATUALIZADO).
+* [ ] Integração com WhatsApp via Evolution API funciona para envio e recebimento.
+
+Performance e Usabilidade:
+
+* [ ] Tempo de resposta aceitável (< 5-10 segundos para interações complexas com IA).
+* [ ] Mensagens bem formatadas e claras no WhatsApp.
+* [ ] Tratamento de erros amigável (falhas de API, input inválido, erros internos dos agentes ou tools).
+* [ ] Logs de monitoramento (`interaction_log`) são abrangentes e úteis para depuração.
+
+Segurança e Dados:
+
+* [ ] RLS (Row Level Security) ativo e funcional no Supabase (conforme `código postgresql.txt`).
+* [ ] Chaves de API (Football API, IA, Evolution) protegidas como variáveis de ambiente no N8N.
+* [ ] Dados do usuário isolados corretamente.
+
+---
+
+## 17. RECURSOS E REFERÊNCIAS
+
+* **APIs Utilizadas:** Football API-Sports, Supabase, Evolution API, Google Gemini (ou outro LLM como GPT/Claude).
+* **Documentação N8N:**
+    * LangChain Nodes (`@n8n/n8n-nodes-langchain.agent`, `@n8n/n8n-nodes-langchain.toolWorkflow`, `@n8n/n8n-nodes-langchain.lmChatGoogleGemini`, etc.)
+    * HTTP Request Node
+    * PostgreSQL Node (para Supabase)
+    * Webhook Node
+    * Execute Workflow Node (para sub-fluxos)
+    * Set Node, Code Node, Switch Node
+* **Documentação LangChain:** Conceitos de Agentes, Tools, Memory.
+* **Documentação Supabase:** JavaScript Client Library, SQL.
+* **Documentação Evolution API:** Endpoints para envio de mensagens.
+
+---
+
+## 18. TROUBLESHOOTING COMUM
+
+* **Timeout APIs Externas (Football API, LLM):**
+    * Aumentar timeout nos nós HTTP Request ou nós de IA.
+    * Implementar retentativas com backoff exponencial no N8N (usando nós de Erro e Retry).
+    * Verificar cotas e limites das APIs.
+* **Erro Supabase RLS ou Permissões:**
+    * Verificar políticas de segurança (RLS) no `código postgresql.txt` e no painel do Supabase.
+    * Garantir que o usuário/role da API N8N no Supabase tem as permissões corretas (SELECT, INSERT, UPDATE nas tabelas necessárias).
+* **WhatsApp não recebe/envia mensagens:**
+    * Verificar webhook da Evolution API no N8N (se está ativo e acessível).
+    * Verificar status da instância da Evolution API.
+    * Conferir o formato do payload enviado para a Evolution API.
+    * Logs da Evolution API.
+* **IA (LangChain Agent) não chama a Tool esperada ou falha ao usar uma Tool:**
+    * **Descrição da Tool:** A descrição da tool no nó LangChain Agent deve ser MUITO clara e precisa sobre o que a tool faz e, crucialmente, quais argumentos ela espera e em que formato.
+    * **System Message do Agente:** O prompt do agente deve guiar a IA sobre quando e como usar as tools disponíveis.
+    * **Argumentos da Tool:** Verificar se a IA está tentando chamar a tool com os argumentos corretos e no formato esperado pelo sub-fluxo N8N ou "Code Tool".
+    * **Output da Tool:** O sub-fluxo ou "Code Tool" deve retornar um output (geralmente uma string, pode ser JSON stringificada) que a IA consiga entender e usar, conforme instruído no System Message.
+* **IA não responde no formato esperado (ex: não retorna apenas `response_text`):**
+    * Ajustar o System Message do agente para ser explícito sobre o formato de saída desejado (ex: "Responda APENAS com o texto para o usuário.").
+    * Verificar a `temperature` do modelo de IA (valores mais baixos para respostas mais determinísticas).
+* **Contexto da IA Incorreto (`short_term_context_history` ou `user_data`):**
+    * Depurar os dados que estão sendo efetivamente passados para o prompt da IA.
+    * Verificar a qualidade e concisão dos `current_interaction_summary` gerados pela AI Summarizer. Se os sumários forem ruins, o contexto de curto prazo será ruim.
+* **Erro no Output de "Code Tools" ou Parsing de JSON:**
+    * Se uma "Code Tool" retorna uma string JSON e o agente LangChain não consegue usá-la, verifique:
+        * Se a "Code Tool" está de fato retornando uma string JSON válida (use `JSON.stringify()` corretamente no final do código da tool).
+        * Se o System Message do agente instrui a IA sobre como esperar e usar esse output (seja para passar para outra tool ou para extrair dados). A IA pode precisar ser instruída que o output de uma tool será uma string JSON que ela talvez precise "interpretar" para extrair valores para a próxima tool.
+        * Se é necessário um nó "Code" ou "Set" no workflow N8N *após* o nó LangChain Agent executar a "Code Tool" (se a tool for chamada e seu resultado precisar ser processado antes da IA continuar no mesmo turno) para fazer `JSON.parse()` na string e disponibilizar os dados de forma estruturada para a próxima chamada de tool pela IA. No entanto, o ideal é que a IA seja instruída a solicitar as chamadas subsequentes à `Tool_UpdateUserProfile` (por exemplo) já com os valores extraídos do JSON retornado pela `Tool_CalculateStake`.
+* **Loop de Agente ou Decisões Inesperadas do Roteador:**
+    * Revisar o prompt do Roteador AI e dos agentes, especialmente a lógica de decisão e as condições de transição.
+    * Verificar se o `short_term_context_history` está influenciando negativamente as decisões.
+
+---
+
+## 19. PRÓXIMOS PASSOS PARA COMEÇAR (Com este Blueprint)
+
+1.  **Revisão Completa:** Revise este Blueprint Mestre V1.1 (Versão Chat Revisada) para garantir que todos os aspectos estão cobertos e claros, especialmente a nova arquitetura de Agentes LangChain, Tools, e o fluxo de `response_text` e `persistencia-e-log-pos-agente.n8n`.
+2.  **Configuração do Ambiente N8N:**
+    * Certifique-se de que o N8N está pronto.
+    * Instale/atualize os pacotes LangChain (`@n8n/n8n-nodes-langchain`).
+    * Configure as credenciais para Google Gemini (ou outro LLM), Supabase, e Evolution API no N8N.
+3.  **Implementação Incremental (Conforme Faseamento):**
+    * **Comece pelo `00-tratamento-inicial-mensagem.n8n` e `01-hub-central.n8n`:**
+        * Implemente `Tool:FetchOrCreateUser` e `Tool:FetchInteractionHistory` como sub-fluxos.
+        * Configure o nó "AI Agent Router" no Hub Central com seu System Message.
+        * Configure o Switch para direcionar para os futuros agentes (inicialmente podem ser stubs).
+    * **Implemente o `subfluxo_persistencia_e_log_pos_agente.n8n`:**
+        * Configure o nó da AI Summarizer com seu prompt.
+        * Configure o nó Supabase para salvar na `interaction_log`.
+    * **Desenvolva um Agente Especializado por vez (ex: `onboarding.n8n`):**
+        * Crie o workflow do agente.
+        * Configure o nó LangChain Agent com seu System Message e as "Tools" que ele pode chamar (`Tool_UpdateUserProfile` via `toolWorkflow` e `Tool_CalculateStake` como "Code Tool").
+        * Crie os sub-fluxos para as tools que são workflows (ex: `subfluxo_tool_UpdateUserProfile.n8n`).
+        * Teste o agente isoladamente e depois integrado com o Hub Central.
+4.  **Foco nas "Tools" Primeiro:** Implemente e teste as "Tools" (sub-fluxos N8N e "Code Tools") individualmente para garantir que funcionam corretamente antes de integrá-las aos agentes LangChain.
+5.  **Iteração nos Prompts (System Messages):** Os System Messages para o Roteador e para cada Agente Especializado são CRUCIAIS. Eles necessitarão de várias iterações e testes para alcançar a lógica de conversação, o uso correto das tools e o formato de output desejado.
+6.  **Validação Contínua:** Use o Checklist de Validação (Seção 16) ao final de cada fase e antes do deploy final.
+
+**IMPORTANTE:** Este blueprint é um guia vivo. Conforme o projeto evolui e novos aprendizados surgem durante a implementação, ele pode (e deve) ser atualizado para refletir o estado mais recente e as melhores práticas identificadas.
