@@ -19,7 +19,7 @@ $$ LANGUAGE plpgsql;
 
 -- Tabela: users
 CREATE TABLE users (
-    user_id UUID PRIMARY KEY DEFAULT auth.uid(), -- MODIFICADO para UUID
+    user_id UUID PRIMARY KEY DEFAULT auth.uid(),
     whatsapp_id TEXT NOT NULL UNIQUE,
     push_name TEXT NULL,
     bank_value DECIMAL(12, 2) NULL,
@@ -32,9 +32,14 @@ CREATE TABLE users (
     recent_loss_signals_count INTEGER NOT NULL DEFAULT 0,
     active_analysis_game_id TEXT NULL,
     active_analysis_details JSONB NULL,
-    current_subscription_id UUID NULL, -- MODIFICADO para UUID (FK para user_subscriptions)
+    current_subscription_id UUID NULL,
     onboarding_completed_at TIMESTAMPTZ NULL,
     last_favorite_team_notification_at TIMESTAMPTZ NULL,
+    -- NOVAS COLUNAS ADICIONADAS:
+    stake_sugerida_percentual DECIMAL(5, 4) NULL,
+    stake_sugerida_valor DECIMAL(12, 2) NULL,
+    total_apostas_diarias_recomendadas TEXT NULL,
+    -- FIM DAS NOVAS COLUNAS
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -54,9 +59,9 @@ CREATE TABLE plans (
 
 -- Tabela: user_subscriptions
 CREATE TABLE user_subscriptions (
-    subscription_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), -- MODIFICADO para UUID
-    user_id UUID NOT NULL, -- MODIFICADO para UUID
-    plan_id INTEGER NOT NULL, -- FK para plans.plan_id
+    subscription_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL,
+    plan_id INTEGER NOT NULL,
     start_date TIMESTAMPTZ NOT NULL DEFAULT now(),
     end_date TIMESTAMPTZ NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -84,7 +89,7 @@ CREATE TABLE leagues (
 -- Tabela: interaction_log
 CREATE TABLE interaction_log (
     log_id BIGSERIAL PRIMARY KEY,
-    user_id UUID NULL, -- MODIFICADO para UUID
+    user_id UUID NULL,
     "timestamp" TIMESTAMPTZ NOT NULL DEFAULT now(),
     event_type TEXT NOT NULL,
     details JSONB NULL,
@@ -94,9 +99,9 @@ CREATE TABLE interaction_log (
 -- Tabela: user_bets
 CREATE TABLE user_bets (
     bet_id BIGSERIAL PRIMARY KEY,
-    user_id UUID NOT NULL, -- MODIFICADO para UUID
+    user_id UUID NOT NULL,
     game_id_api_football TEXT NULL,
-    league_id INTEGER NULL, -- FK para leagues.league_id
+    league_id INTEGER NULL,
     bet_description TEXT NOT NULL,
     stake_amount DECIMAL(12, 2) NULL,
     odds DECIMAL(5, 2) NULL,
@@ -216,7 +221,6 @@ BEFORE UPDATE ON app_settings
 FOR EACH ROW
 EXECUTE FUNCTION trigger_set_timestamp();
 
-
 -- #############################################################################
 -- ## CONFIGURAÇÃO DE ROW-LEVEL SECURITY (RLS)                                ##
 -- #############################################################################
@@ -237,8 +241,9 @@ FOR ALL
 USING (user_id = auth.uid())
 WITH CHECK (user_id = auth.uid());
 
--- A política de INSERT abaixo funciona bem com `user_id UUID DEFAULT auth.uid()`
+-- A política de INSERT abaixo funciona bem com user_id UUID DEFAULT auth.uid()
 -- pois garante que o user_id do novo registro corresponda ao usuário autenticado.
+-- (Ou com o trigger que adicionamos para gerar UUID se auth.uid() for NULL)
 CREATE POLICY "Usuários podem criar seu próprio registro (INSERT)"
 ON users
 FOR INSERT
@@ -250,7 +255,8 @@ ALTER TABLE plans ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Planos são publicamente visíveis para usuários autenticados"
 ON plans
 FOR SELECT
-USING (auth.role() = 'authenticated'); -- Ou `true` se qualquer um pode ver
+USING (auth.role() = 'authenticated');
+-- Ou `true` se qualquer um pode ver
 
 -- Para INSERT, UPDATE, DELETE em 'plans', crie políticas restritas a administradores.
 -- Exemplo:
@@ -275,7 +281,8 @@ ALTER TABLE leagues ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Ligas são publicamente visíveis para usuários autenticados"
 ON leagues
 FOR SELECT
-USING (auth.role() = 'authenticated'); -- Ou `true`
+USING (auth.role() = 'authenticated');
+-- Ou `true`
 
 -- Para INSERT, UPDATE, DELETE em 'leagues', políticas de administrador seriam apropriadas.
 
@@ -308,7 +315,8 @@ ALTER TABLE knowledge_base ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Itens da base de conhecimento são publicamente visíveis para usuários autenticados"
 ON knowledge_base
 FOR SELECT
-USING (auth.role() = 'authenticated'); -- Ou `true`
+USING (auth.role() = 'authenticated');
+-- Ou `true`
 
 -- Para INSERT, UPDATE, DELETE em 'knowledge_base', políticas de administrador.
 
@@ -319,7 +327,6 @@ CREATE POLICY "Configurações não seguras são visíveis para usuários autent
 ON app_settings
 FOR SELECT
 USING (is_secure = FALSE AND auth.role() = 'authenticated');
-
 -- Modificações e leitura de configs seguras devem ser para administradores.
 
 -- #############################################################################
@@ -330,5 +337,26 @@ USING (is_secure = FALSE AND auth.role() = 'authenticated');
 -- 3. Testes: Teste exaustivamente suas políticas RLS.
 -- 4. Performance: Monitore queries, especialmente com RLS e subconsultas (se usadas em políticas complexas).
 -- 5. BYPASSRLS: Superusuários e roles com BYPASSRLS ignoram RLS. Use com cautela.
+
+-- (Se você implementou o trigger para user_id, ele coexistirá com o DEFAULT auth.uid())
+-- CREATE OR REPLACE FUNCTION set_user_id_on_insert()
+-- RETURNS TRIGGER AS $$
+-- BEGIN
+--   IF NEW.user_id IS NULL THEN
+--     IF auth.uid() IS NOT NULL THEN
+--       NEW.user_id = auth.uid();
+--     ELSE
+--       NEW.user_id = gen_random_uuid();
+--     END IF;
+--   END IF;
+--   RETURN NEW;
+-- END;
+-- $$ LANGUAGE plpgsql;
+
+-- DROP TRIGGER IF EXISTS trigger_users_set_user_id_before_insert ON users;
+-- CREATE TRIGGER trigger_users_set_user_id_before_insert
+-- BEFORE INSERT ON users
+-- FOR EACH ROW
+-- EXECUTE FUNCTION set_user_id_on_insert();
 
 -- Fim do script
