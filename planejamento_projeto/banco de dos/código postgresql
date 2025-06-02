@@ -44,6 +44,9 @@ CREATE TABLE users (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+ALTER TABLE users
+ADD COLUMN last_presented_games_context JSONB NULL;
+
 -- Tabela: plans
 CREATE TABLE plans (
     plan_id SERIAL PRIMARY KEY,
