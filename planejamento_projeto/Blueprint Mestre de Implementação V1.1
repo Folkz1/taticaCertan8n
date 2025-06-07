@@ -138,6 +138,48 @@ Este workflow N8N reutilizável é chamado pelo `01-hub-central.n8n` APÓS a men
 
 ---
 
+Tópico para Adicionar ao seu Documento de Planejamento/Blueprint
+Pode adicionar esta nova seção ao seu documento, por exemplo, como 4.5 se estiver seguindo a estrutura do blueprint.
+
+## 4.5. Integração Multicanal e Abstração da Camada de Mensageria
+
+Para expandir o alcance e a flexibilidade do ApostaCerta.AI, o sistema foi refatorado para suportar múltiplos canais de comunicação, iniciando com a integração do **WhatsApp (via Evolution API)** e do **Telegram**.
+
+A estratégia arquitetônica adotada foi a criação de uma **camada de abstração de mensageria**, evitando a duplicação da lógica de negócio para cada canal. Isso foi alcançado através da definição de um **formato de mensagem canônico (padrão)** que é usado internamente por todo o sistema, desde o Roteador (01-hub-central.n8n) até os agentes especializados.
+
+O fluxo de comunicação agora segue o seguinte modelo:
+
+#### 1. Ingress (Recebimento de Mensagens)
+
+Cada canal possui um webhook de entrada dedicado (ex: \00-webhook-evolution.n8n`, `00-webhook-telegram.n8n`).`
+A responsabilidade de cada webhook é exclusivamente receber a mensagem no formato nativo da sua plataforma e **transformá-la para o formato canônico interno**.
+Este objeto canônico, contendo informações padronizadas como \sender_id`, `message_text`, e `platform`, é então encaminhado para o `01-hub-central.n8n`.`
+#### 2. Egress (Envio de Respostas)
+
+Os agentes especializados geram uma resposta em um formato genérico, sem se preocupar com o canal de destino.
+Um módulo de envio centralizado recebe essa resposta genérica, identifica a plataforma de origem do usuário (WhatsApp ou Telegram) e **traduz a resposta para o formato específico exigido pela API do canal** antes de enviá-la ao usuário final.
+#### Diagrama do Fluxo de Mensageria
+
+                                      +-------------------------+
+[Webhook WhatsApp] -----------------> |                         |
+                                      | Módulo de Transformação |-----> [01-hub-central.n8n] --> (Agentes)
+[Webhook Telegram] -----------------> | (Para Formato Canônico) |
+                                      |                         |
+[Futuro Canal]--(futuro)------------> +-------------------------+
+                                                ^
+                                                | (Resposta Canônica)
+                                                |
+                                      +-------------------------+
+                                      |   Módulo de Envio       |-----> (API Específica da Plataforma)
+                                      |   (Para Formato Nativo) |
+                                      +-------------------------+
+#### Vantagens Desta Arquitetura
+
+**Escalabilidade:** Adicionar um novo canal no futuro (ex: Discord, Messenger) requer apenas a criação de um novo webhook de transformação, sem a necessidade de alterar a lógica de negócio principal dos agentes.
+**Manutenção Simplificada:** A lógica de negócio e as regras de conversação residem em um único lugar, sendo independentes do canal de comunicação.
+**Desacoplamento:** Os agentes não precisam "saber" se estão conversando com um usuário no WhatsApp ou no Telegram, o que torna o sistema mais limpo e robusto.
+
+
 ## 7. SISTEMA DE ROTEAMENTO INTELIGENTE (HUB CENTRAL) - ATUALIZADO
 
 O workflow `01-hub-central.n8n` é o ponto de entrada após o `00-tratamento-inicial-mensagem.n8n`.
